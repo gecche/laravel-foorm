@@ -1,6 +1,6 @@
 <?php
 
-namespace Cupparis\Form;
+namespace Gecche\Foorm;
 
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\Facades\Validator;
@@ -348,26 +348,5 @@ class Form implements FormInterface {
     
     
     
-        
 
-    /*
-      public static function __callStatic($name, $arguments) {
-      if (!starts_with($name,'ajaxListing')) {
-      throw new \BadMethodCallException("Method [$name] does not exist.");
-      }
-
-      if (method_exists($this, $name)) {
-      call_user_func_array('static::'.$name, $arguments);
-      return;
-      }
-
-      if (starts_with($name, 'ajaxListing')) {
-      call_user_func_array('static::ajaxListing', $arguments);
-      return;
-      }
-
-
-      }
-
-     */
 }

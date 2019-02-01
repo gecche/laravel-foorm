@@ -1,6 +1,6 @@
 <?php
 
-namespace Cupparis\Form;
+namespace Gecche\Foorm;
 
 use \Illuminate\Database\Connection;
 

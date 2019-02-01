@@ -1,4 +1,4 @@
-<?php namespace Cupparis\Form\Http;
+<?php namespace Gecche\Foorm\Http;
 
 /*
  * This file is part of the Ardent package.
