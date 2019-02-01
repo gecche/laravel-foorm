@@ -1,8 +1,8 @@
 <?php
 
-namespace Gecche\Foorm;
+namespace Gecche\Foorm\Old;
 
-use Cupparis\Ardent\Ardent;
+use Gecche\ModelPlus\ModelPlus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Config;
@@ -18,6 +18,9 @@ class ModelForm extends Form
     protected $modelRelativeName = null; //Senza namespace
     protected $modelNamePermission = null;
     protected $primary_key_field = null;
+
+    protected $models_namespace;
+
     protected $validationRulesJs = array();
     protected $hasManies = array();
     protected $belongsTos = array();
@@ -49,19 +52,20 @@ class ModelForm extends Form
         ]
     ];
 
-    public function __construct(Ardent $model, $permissionPrefix = null, $params = array())
+    public function __construct(ModelPlus $model, $permissionPrefix = null, $params = array())
     {
 
         parent::__construct($params);
 
         $this->model = $model;
         $this->modelName = get_class($this->model);
-        $this->db_methods = new ModelDBMethods($this->model->getConnection());
         $this->modelRelativeName = trim_namespace($this->models_namespace, $this->modelName);
-
         $this->modelRelativeName = trim_namespace($this->datafilemodels_namespace, $this->modelRelativeName);
         $this->modelNamePermission = strtoupper(snake_case($this->modelRelativeName));
         $this->primary_key_field = $this->model->getTable() . '.' . $this->model->getKeyName();
+
+        $this->db_methods = new ModelDBMethods($this->model->getConnection());
+
 
         $this->setRelations();
 
@@ -73,7 +77,9 @@ class ModelForm extends Form
             $inactiveRelations = $this->inactiveRelations;
         }
 
-        $relations = $this->model->getRelationData();
+        $modelName = $this->modelName;
+
+        $relations = $modelName::getRelationsData();
 
         foreach ($relations as $key => $relation) {
             if (in_array($key, $inactiveRelations)) {
@@ -82,9 +88,12 @@ class ModelForm extends Form
         }
 
         $this->relations = $relations;
+
         $this->belongsToManiesSaveTypes = array_merge(Config::get('forms.belongs_to_manies_save_types'),
             $this->belongsToManiesSaveTypes);
+
         $this->hasManiesSaveTypes = array_merge(Config::get('forms.has_manies_save_types'), $this->hasManiesSaveTypes);
+
         $this->belongsTosSaveTypes = array_merge(Config::get('forms.belongs_tos_save_types'),
             $this->belongsTosSaveTypes);
 

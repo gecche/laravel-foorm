@@ -1,6 +1,6 @@
 <?php
 
-namespace Gecche\Foorm;
+namespace Gecche\Foorm\Old;
 
 use Cupparis\Acl\Facades\Acl;
 use Cupparis\Ardent\Ardent;
@@ -23,6 +23,9 @@ class ModelFormList extends ModelForm {
     public function __construct(Ardent $model, $permissionPrefix = 'LIST', $params = array()) {
 
         parent::__construct($model, $permissionPrefix, $params);
+
+
+        //PAGINAZIONE
         $modelRelativeName = snake_case($this->getModelRelativeName());
         $formKey = 'forms.'.$modelRelativeName;
         // valore default del paginate number
@@ -40,6 +43,7 @@ class ModelFormList extends ModelForm {
             }
         }
 
+        //TOTALI
         $summary = array_get($values,'summary',[]);
 
         foreach ($summary as $summaryFieldKey => $summaryFieldValue) {
@@ -51,7 +55,7 @@ class ModelFormList extends ModelForm {
             $this->summaryParams[$summaryFieldKey] = $summaryFieldValue;
         }
 
-
+        //PERMESSI
         $this->permissionPrefix = $permissionPrefix;
 
         $this->setHasManies();

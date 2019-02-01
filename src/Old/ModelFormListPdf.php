@@ -1,15 +1,14 @@
 <?php
 
-namespace Gecche\Foorm;
+namespace Gecche\Foorm\Old;
 
 use Cupparis\Acl\Facades\Acl;
 use Cupparis\Ardent\Ardent;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Input;
-use Illuminate\Support\Facades\Log;
 
-class ModelFormListCsv extends ModelFormList {
+class ModelFormListPdf extends ModelFormList {
 
     protected $paginateNumber = null;
     protected $paginateSelect = array('*');
@@ -51,27 +50,21 @@ class ModelFormListCsv extends ModelFormList {
         $tempResult = $this->result;
 
         $this->result = $this->result->take($perPage)->skip($skip)->get();
-
-//        if ($page == 1 && $this->result->count() == 0) {
-//            throw new \Exception("Nessun risultato");
-//        }
         /*
          * Performs custom model data
          * per esemèpio usare la funzione "each" sulla eloquent collection
          */
         $this->customizeResult();
 
-//        Log::info("Mah2");
         $modelName = $this->getModelName();
-        $csvType = array_get($this->params,'csvType','default');
+        $pdfType = array_get($this->params,'pdfType','default');
         $params = [
             'headers' => $page == 1 ? true : false,
         ];
-        $csv = $modelName::getCsvExport($this->result, $this->resultParams, $csvType, $params);
-//        Log::info("Mah3");
+        $pdf = $modelName::getPdfExport($this->result, $this->resultParams, $pdfType, $params);
 
         $this->result = $tempResult;
-        return $csv;
+        return $pdf;
 
     }
 
@@ -80,19 +73,54 @@ class ModelFormListCsv extends ModelFormList {
 
         $this->result = $this->result->get();
 
+
         /*
          * Performs custom model data
          * per esemèpio usare la funzione "each" sulla eloquent collection
          */
         $this->customizeResult();
 
-        $modelName = $this->getModelName();
-        $csvType = array_get($this->params,'csvType','default');
-        $csv = $modelName::getCsvExport($this->result, $csvType);
+        $this->setResultParams();
 
-        $this->result = $csv;
+        $modelName = $this->getModelName();
+        $pdfType = array_get($this->params,'pdfType','default');
+        $pdf = $modelName::getPdfExport($this->result, $this->resultParams, $pdfType);
+
+        $this->result = $pdf;
     }
 
+    public function setResultParams() {
+
+        $this->resultParams = $this->db_methods->listColumnsDefault($this->model->getTable());
+
+        $this->setResultParamsAppendsDefaults();
+        $this->setResultParamsDefaults();
+
+        foreach (array_keys($this->resultParams) as $resultField) {
+            $this->createResultParamItem($resultField);
+        }
+
+        $fieldParamsFromModel = $this->model->getFieldParams();
+        $modelFieldsParamsFromModel = array_intersect_key($fieldParamsFromModel,$this->resultParams);
+
+        $this->resultParams = array_replace_recursive($this->resultParams,$modelFieldsParamsFromModel);
+
+        foreach ($this->hasManies as $key => $value) {
+            $modelName = $value['modelName'];
+            $model = new $modelName;
+            $value["fields"] = $this->db_methods->listColumnsDefault($model->getTable());
+
+            $this->resultParams[$key] = $value;
+        }
+
+        foreach ($this->belongsTos as $key => $value) {
+            $modelName = $value['modelName'];
+            $options = $modelName::getForSelectList();
+            $value['options'] = $options;
+            $value['options_order'] = array_keys($options);
+            $this->resultParams[$key] = $value;
+        }
+    }
 
 
 }

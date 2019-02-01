@@ -1,6 +1,6 @@
 <?php
 
-namespace Gecche\Foorm;
+namespace Gecche\Foorm\Old;
 
 use Cupparis\Acl\Facades\Acl;
 use Cupparis\Ardent\Ardent;
