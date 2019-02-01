@@ -1,0 +1,27 @@
+{
+    "name": "gecche/laravel-foorm",
+    "description": "Building laravel forms for ORM tasks in a easy way",
+    "keywords": ["laravel", "form", "ORM"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Giacomo Terreni",
+            "email": "giacomo.terreni@gmail.com"
+        }
+    ],
+    "require": {
+        "laravel/framework": "5.5.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Gecche\\Foorm\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+
+            ]
+        }
+    }
+}
