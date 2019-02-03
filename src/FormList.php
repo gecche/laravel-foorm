@@ -52,9 +52,21 @@ class FormList
     protected $inactiveRelations;
 
 
+    /**
+     * @var mixed
+     */
     protected $formData;
 
+    /**
+     * @var mixed
+     */
     protected $formMetadata;
+
+    /**
+     * @var \Closure|null
+     */
+    protected $listBuilder;
+
 
     public function __construct($input = [], ModelPlus $model, $params = [])
     {
