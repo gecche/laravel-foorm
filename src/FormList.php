@@ -4,6 +4,7 @@ namespace Gecche\Foorm;
 
 use Cupparis\Acl\Facades\Acl;
 use Cupparis\Ardent\Ardent;
+use Gecche\Foorm\Contracts\ListBuilder;
 use Gecche\ModelPlus\ModelPlus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
@@ -11,8 +12,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Log;
 
-class FormList {
+class FormList
+{
 
+    use ConstraintBuilderTrait;
 
     /**
      * @var array
@@ -69,8 +72,9 @@ class FormList {
     }
 
 
-    public function getModelsNamespace() {
-        return config('foorm.models_namespace','App') . "\\";
+    public function getModelsNamespace()
+    {
+        return config('foorm.models_namespace', 'App') . "\\";
     }
 
     /**
@@ -122,20 +126,16 @@ class FormList {
     }
 
 
-
-    public function getFormData() {
-        $this->getRelations();
-    }
-
-
-    public function getRelations() {
+    public function getRelations()
+    {
         if (is_null($this->relations)) {
             return $this->buildRelations();
         }
         return $this->relations;
     }
 
-    public function setRelations(array $relations) {
+    public function setRelations(array $relations)
+    {
         $this->relations = $relations;
     }
 
@@ -221,7 +221,7 @@ class FormList {
             unset($relations[$relationName][1]);
             $relations[$relationName]['modelName'] = $modelRelatedName;
             $relations[$relationName]['modelRelativeName'] = trim_namespace($this->getModelsNamespace(), $modelRelatedName);
-            $relations[$relationName]['relationName'] = snake_case( $relations[$relationName]['modelRelativeName']);
+            $relations[$relationName]['relationName'] = snake_case($relations[$relationName]['modelRelativeName']);
         }
 
         $this->hasManies = $relations;
@@ -248,8 +248,8 @@ class FormList {
         foreach ($relations as $relationName => $relation) {
 
             switch ($relation[0]) {
-                case Ardent::BELONGS_TO:
-                    $foreignKey = array_get($relations[$relationName], 'foreignKey', snake_case($relationName) . '_id');
+                case ModelPlus::BELONGS_TO:
+//                    $foreignKey = array_get($relations[$relationName], 'foreignKey', snake_case($relationName) . '_id');
                     $relations[$relationName]['relationName'] = $relationName;
                     break;
                 default:
@@ -282,9 +282,101 @@ class FormList {
     }
 
 
+    protected function prepareRelationsData()
+    {
+        $this->getRelations();
+        $this->getHasManies();
+        $this->getBelongsTos();
+    }
 
 
-    public function getFormMetadata() {
+    /**
+     * @param \Closure|string $builder
+     */
+    public function setListBuilder($builder)
+    {
+        $this->listBuilder = $builder;
+    }
+
+
+    /**
+     *
+     */
+    protected function generateListBuilder()
+    {
+
+
+        $this->applylistBuilder();
+
+        $this->applyRelations();
+
+        $this->applyFixedConstraints();
+
+    }
+
+
+    protected function applyListBuilder()
+    {
+        if ($this->listBuilder instanceof \Closure) {
+            $builder = $this->listBuilder;
+            $this->formBuilder = $builder($this->model);
+            return;
+        }
+
+        $modelClass = get_class($this->model);
+        $this->formBuilder = $modelClass::query();
+
+    }
+
+    protected function applyRelations()
+    {
+        foreach (array_keys($this->relations) as $relationName) {
+            $this->formBuilder = $this->formBuilder->with($relationName);
+        }
+    }
+
+    protected function applyFixedConstraints()
+    {
+
+
+    }
+
+    /**
+     * Generates and returns the data list
+     *
+     * - Defines the relations of the model involved in the form
+     * - Generates an initial builder
+     * - Apply search filters if any
+     * - Apply the desired list order
+     * - Paginate results
+     * - Apply last transformations to the list
+     * - Format the result
+     *
+     */
+    public function getFormData()
+    {
+
+        $this->prepareRelationsData();
+
+        $this->generateListBuilder();
+
+        $this->applySearchFilters();
+
+        $this->applyListOrder();
+
+        $this->paginateList();
+
+        $this->finalizeList();
+
+        $this->formatData();
+
+        return $this->formData;
+
+    }
+
+
+    public function getFormMetadata()
+    {
 
     }
 
