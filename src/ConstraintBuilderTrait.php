@@ -13,22 +13,6 @@ use Illuminate\Support\Facades\Log;
 trait ConstraintBuilderTrait
 {
 
-    protected function getFilterRealvalue($value)
-    {
-        $realvalue = null;
-        if (is_string($value)) {
-            $realvalue = $value;
-        }
-        if (is_array($value)) {
-            $firstValue = array_get($value, 0, false);
-            if ($firstValue !== false && $firstValue !== '') {
-                $realvalue = $value[0];
-            }
-        }
-
-        return $realvalue;
-    }
-
 
     /**
      * The main method for building a constraint

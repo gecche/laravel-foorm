@@ -13,24 +13,6 @@ use Illuminate\Support\Facades\Log;
 trait OrderBuilderTrait
 {
 
-    public function setOrderResult() {
-
-
-        if ($order_input) {
-
-            $orderMethod = 'buildOrder' . studly_case($order_input);
-
-            $this->result = $this->$orderMethod($order_input, $order_direction, $this->result);
-        } elseif (method_exists($this->model,'defaultOrderMethod')) {
-            $this->result = $this->model->defaultOrderMethod($this->result);
-        } else {
-            foreach ($this->model->getDefaultOrderColumns() as $orderColumn => $orderDirection) {
-                $orderColumn = $this->model->getTable() . '.' . $orderColumn;
-                $this->result = $this->result->orderBy($orderColumn, $orderDirection);
-            }
-        }
-    }
-
     /**
      * The main method for building a constraint
      *

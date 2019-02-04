@@ -16,6 +16,8 @@ class FormList
 {
 
     use ConstraintBuilderTrait;
+    use OrderBuilderTrait;
+    use AggregateBuilderTrait;
 
     /**
      * @var array
@@ -56,6 +58,11 @@ class FormList
      * @var mixed
      */
     protected $formData;
+
+    /**
+     * @var Array
+     */
+    protected $formAggregatesData;
 
     /**
      * @var mixed
@@ -493,13 +500,7 @@ class FormList
     public function getFormData()
     {
 
-        $this->prepareRelationsData();
-
-        $this->generateListBuilder();
-
-        $this->applySearchFilters();
-
-        $this->applyListOrder();
+        $this->getFormBuilder();
 
         $this->paginateList();
 
@@ -510,10 +511,122 @@ class FormList
     }
 
 
-    public function getFormMetadata()
-    {
+
+
+    public function getAggregatesData() {
+
+        $aggregatesBuilder = $this->cloneFormBuilder();
+
+
+//        count, max, min,  avg, and sum
+
+        $aggregatesArray = array_get($this->params,'aggregates',[]);
+
+
+        $this->formAggregatesData = $this->applyAggregates($aggregatesBuilder,$aggregatesArray);
 
     }
+
+
+    protected function cloneFormBuilder() {
+        $builder = $this->getFormBuilder();
+
+        return clone($builder);
+
+    }
+
+    public function setFormBuilder() {
+
+        $this->prepareRelationsData();
+
+        $this->generateListBuilder();
+
+        $this->applySearchFilters();
+
+        $this->applyListOrder();
+
+    }
+
+    public function getFormBuilder() {
+        if (is_null($this->formBuilder)) {
+            $this->setFormBuilder();
+        }
+
+        return $this->formBuilder;
+    }
+
+    public function getFormMetadata()
+    {
+        if (is_null($this->formMetadata)) {
+            $this->setFormMetadata();
+        }
+
+        return $this->formMetadata;
+
+    }
+
+    public function setFormMetadata() {
+
+
+        $this->resultParams = $this->db_methods->listColumnsDefault($this->model->getTable());
+
+        $this->setResultParamsAppendsDefaults();
+        $this->setResultParamsDefaults();
+
+        foreach (array_keys($this->result) as $resultField) {
+
+            if ($resultField == 'data') {
+                $data = $this->result[$resultField];
+                if (is_array($data) && !empty($data)) {
+                    $firstData = current($data);
+                    foreach (array_keys($firstData) as $resultDataField) {
+                        $this->createResultParamItem($resultDataField);
+                    }
+                }
+                continue;
+            }
+
+            $this->createResultParamItem($resultField);
+        }
+
+
+
+        $fieldParamsFromModel = $this->model->getFieldParams();
+        $modelFieldsParamsFromModel = array_intersect_key($fieldParamsFromModel,$this->resultParams);
+
+        $this->resultParams = array_replace_recursive($this->resultParams,$modelFieldsParamsFromModel);
+
+        foreach ($this->hasManies as $key => $value) {
+            $modelName = $value['modelName'];
+            $model = new $modelName;
+            $value["fields"] = $this->db_methods->listColumnsDefault($model->getTable());
+
+            $this->resultParams[$key] = $value;
+        }
+
+        foreach ($this->belongsTos as $key => $value) {
+            $modelName = $value['modelName'];
+            $options = $modelName::getForSelectList();
+            $value['options'] = $options;
+            $value['options_order'] = array_keys($options);
+            $this->resultParams[$key] = $value;
+        }
+
+        $order_input = Input::get('order_field', false);
+        if ($order_input) {
+            $this->resultParams['order_field'] = $order_input;
+            $this->resultParams['order_direction'] = Input::get('order_direction', 'ASC');
+        } else {
+            $order = $this->model->getDefaultOrderColumns();
+            $orderColumns = array_keys($order);
+            $orderDirections = array_values($order);
+            $this->resultParams['order_field'] = array_get($orderColumns, 0, 'id');
+            $this->resultParams['order_direction'] = array_get($orderDirections, 0, 'ASC');
+        }
+
+    }
+
+
 
 
 }
