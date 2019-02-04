@@ -199,7 +199,7 @@ trait ConstraintBuilderTrait
     public function buildSearchFilterDatatable($builder, $field, $value, $params = [])
     {
 
-        $searchFields = array_get($params,'datatable_fields', []);
+        $searchFields = array_get($params, 'datatable_fields', []);
         if (!is_array($searchFields)) {
             return $builder;
         }
@@ -418,61 +418,57 @@ trait ConstraintBuilderTrait
 
     }
 
-    public function applyConstraint(array $constraintArray) {
+    protected function applyConstraint(array $constraintArray)
+    {
 
 
-        $field = array_get($constraintArray,'field',null);
+        $field = array_get($constraintArray, 'field', null);
 
-        if (!$field || !is_string($field) || !array_key_exists('value',$constraintArray)) {
+        if (!$field || !is_string($field) || !array_key_exists('value', $constraintArray)) {
             return $this->formBuilder;
         };
 
         $value = $constraintArray['value'];
 
         $isRelation = false;
-        $fieldExploded = explode('.',$field);
+        $fieldExploded = explode('.', $field);
         if (count($fieldExploded) > 1) {
             $isRelation = true;
             $relation = $fieldExploded[0];
             unset($fieldExploded[0]);
-            $field = implode('.',$fieldExploded);
+            $field = implode('.', $fieldExploded);
 
-            $relationData = array_get($this->relations,$relation,[]);
-            if (!array_key_exists('modelName',$relationData)) {
+            $relationData = array_get($this->relations, $relation, []);
+            if (!array_key_exists('modelName', $relationData)) {
                 return $this->formBuilder;
             }
 
             $relationModelName = $relationData['modelName'];
             $relationModel = new $relationModelName;
-            $dbName = Config::get('database.connections.' . $relationModel->getConnectionName() . '.database');
+            $table = array_get($constraintArray, 'table', $relationModel->getTable());
+            $db = array_get($constraintArray, 'db',config('database.connections.' . $relationModel->getConnectionName() . '.database'));
 
-
-            $table = array_get($constraintArray,'table',$relationModel->getTable());
-            $db = array_get($constraintArray,'db');
         } else {
-            $table = array_get($constraintArray,'table',$this->model->getTable());
-            $db = array_get($constraintArray,'db');
+            $table = array_get($constraintArray, 'table', $this->model->getTable());
+            $db = array_get($constraintArray, 'db');
         }
-
 
 
         $dbField = $db ? $db . '.' : '';
         $dbField .= $table ? $table . '.' : '';
         $dbField .= $field;
 
-        $op = array_get($constraintArray,'op','=');
-        $params = array_get($constraintArray,'params',[]);
+        $op = array_get($constraintArray, 'op', '=');
+        $params = array_get($constraintArray, 'params', []);
 
 
         if ($isRelation) {
-            $this->formBuilder = $this->buildConstraintRelation($relation,$this->formBuilder,$dbField,$value,$op,$params);
+            return $this->formBuilder = $this->buildConstraintRelation($relation, $this->formBuilder, $dbField, $value, $op, $params);
 
-        } else {
-            $this->formBuilder = $this->buildConstraint($this->formBuilder,$dbField,$value,$op,$params);
         }
 
-
-        return $this->formBuilder;
+        return $this->formBuilder = $this->buildConstraint($this->formBuilder, $dbField, $value, $op, $params);
 
     }
+
 }

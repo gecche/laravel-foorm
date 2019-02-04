@@ -67,10 +67,13 @@ class FormList
      */
     protected $listBuilder;
 
+    /**
+     * @var Array
+     */
+    protected $config;
 
     public function __construct($input = [], ModelPlus $model, $params = [])
     {
-
 
         $this->input = $input;
         $this->model = $model;
@@ -79,8 +82,23 @@ class FormList
         $this->modelName = get_class($this->model);
         $this->modelRelativeName = trim_namespace($this->getModelsNamespace(), $this->modelName);
 
-        $this->primary_key_field = $this->model->getTable() . '.' . $this->model->getKeyName();
+        $this->config = config('foorm.defaults', []);
+    }
 
+    /**
+     * @return Array
+     */
+    public function getConfig()
+    {
+        return $this->config;
+    }
+
+    /**
+     * @param Array $config
+     */
+    public function setConfig($config)
+    {
+        $this->config = array_merge($this->conifg, $config);
     }
 
 
@@ -349,18 +367,114 @@ class FormList
 
     protected function applyFixedConstraints()
     {
-
-        $fixedConstraints = array_get($this->params,'fixed_constraints',[]);
+        $fixedConstraints = array_get($this->params, 'fixed_constraints', []);
 
         foreach ($fixedConstraints as $fixedConstraint) {
-
             $this->applyConstraint($fixedConstraint);
+        }
+    }
 
+    protected function applySearchFilters()
+    {
+        $searchFilters = array_get($this->input, 'search_filters', []);
+
+        foreach ($searchFilters as $searchFilter) {
+            $this->applyConstraint($searchFilter);
+        }
+    }
+
+
+    /**
+     * @param \Closure|string $builder
+     */
+    public function setListOrder($builder)
+    {
+        $this->listOrder = $builder;
+    }
+
+
+    protected function applyListOrder()
+    {
+        $orderParams = array_get($this->input, 'order_params', []);
+
+        $field = array_get($orderParams, 'field', null);
+
+        if (!$field || !is_string($field)) {
+
+            return $this->applyListOrderDefault();
+        };
+        return $this->applyListOrderFromInput($field, $orderParams);
+
+
+    }
+
+    protected function applyListOrderFromInput($field, $orderParams)
+    {
+        $direction = array_get($orderParams, 'direction', 'ASC');
+        $params = array_get($orderParams, 'params', []);
+
+        return $this->formBuilder = $this->buildOrder($this->formBuilder, $field, $direction, $params);
+
+    }
+
+    protected function applyListOrderDefault()
+    {
+        if ($this->listOrder instanceof \Closure) {
+            $builder = $this->listOrder;
+            $this->formBuilder = $builder($this->formBuilder);
+        }
+
+        return $this->formBuilder;
+
+    }
+
+
+    public function setPaginateSelect(array $paginateSelect)
+    {
+        $this->paginateSelect = $paginateSelect;
+    }
+
+    protected function paginateList()
+    {
+
+
+        $paginationInput = array_get($this->input, 'pagination', []);
+
+        $perPage =
+            array_get($paginationInput, 'per_page',
+                array_get($this->config, 'per_page', 10)
+            );
+
+        $page = array_get($paginationInput, 'page', 1);
+
+        $paginateSelect = is_array($this->paginateSelect)
+            ? $this->paginateSelect
+            : [$this->model->getTable() . ".*"];
+
+        if ($perPage < 0) {
+            //No pagination: set a fixed big value in order to have the same output structure
+            $perPage = array_get($this->config, 'no_paginate_value', 1000000);
         }
 
 
+//      $this->summaryResult = $this->formbuilder;
+        $this->formbuilder = $this->formbuilder->paginate($perPage, $paginateSelect, 'page', $page);
 
 
+        return $this->formBuilder;
+
+    }
+
+
+    public function finalizeData($finalizationFunc = null) {
+
+        if ($finalizationFunc instanceof \Closure) {
+            $this->formData = $finalizationFunc($this->formBuilder);
+        } else {
+            $this->formData = $this->formBuilder->toArray();
+        }
+
+        return $this->formData;
 
     }
 
@@ -389,9 +503,7 @@ class FormList
 
         $this->paginateList();
 
-        $this->finalizeList();
-
-        $this->formatData();
+        $this->finalizeData();
 
         return $this->formData;
 

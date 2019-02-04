@@ -1,0 +1,68 @@
+<?php
+
+namespace Gecche\Foorm;
+
+use Carbon\Carbon;
+use Gecche\ModelPlus\ModelPlus;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Input;
+use Illuminate\Support\Facades\Log;
+
+trait OrderBuilderTrait
+{
+
+    public function setOrderResult() {
+
+
+        if ($order_input) {
+
+            $orderMethod = 'buildOrder' . studly_case($order_input);
+
+            $this->result = $this->$orderMethod($order_input, $order_direction, $this->result);
+        } elseif (method_exists($this->model,'defaultOrderMethod')) {
+            $this->result = $this->model->defaultOrderMethod($this->result);
+        } else {
+            foreach ($this->model->getDefaultOrderColumns() as $orderColumn => $orderDirection) {
+                $orderColumn = $this->model->getTable() . '.' . $orderColumn;
+                $this->result = $this->result->orderBy($orderColumn, $orderDirection);
+            }
+        }
+    }
+
+    /**
+     * The main method for building a constraint
+     *
+     * @param $builder
+     * @param $field
+     * @param string $direction = ASC|DESC
+     * @param array $params
+     * @return mixed
+     */
+    public function buildOrder($builder, $field, $direction = 'ASC', $params = [])
+    {
+
+        if ($direction != 'DESC') {
+            $direction = 'ASC';
+        }
+
+        $methodName = 'buildOrder' . studly_case($field);
+
+        if (method_exists($this, $methodName)) {
+            return $this->$methodName($builder, $field, $direction, $params);
+        }
+
+        $table = array_get($params, 'table', $this->model->getTable());
+        $db = array_get($params, 'db');
+
+        $dbField = $db ? $db . '.' : '';
+        $dbField .= $table ? $table . '.' : '';
+        $dbField .= $field;
+
+        return $builder->orderBy($dbField, $direction);
+
+    }
+
+
+}
