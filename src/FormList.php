@@ -350,6 +350,17 @@ class FormList
     protected function applyFixedConstraints()
     {
 
+        $fixedConstraints = array_get($this->params,'fixed_constraints',[]);
+
+        foreach ($fixedConstraints as $fixedConstraint) {
+
+            $this->applyConstraint($fixedConstraint);
+
+        }
+
+
+
+
 
     }
 

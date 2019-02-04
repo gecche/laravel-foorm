@@ -119,342 +119,6 @@ class ModelForm extends Form
         return true;
     }
 
-    protected function getFilterRealvalue($value)
-    {
-        $realvalue = null;
-        if (is_string($value)) {
-            $realvalue = $value;
-        }
-        if (is_array($value)) {
-            $firstValue = array_get($value, 0, false);
-            if ($firstValue !== false && $firstValue !== '') {
-                $realvalue = $value[0];
-            }
-        }
-
-        return $realvalue;
-    }
-
-    public function buildSearchFilter($key, $value, $op = '=', $builder = null, $searchInputs = [])
-    {
-        $searchParams = array_get($this->searchParams, $key, array());
-        $searchDB = array_get($searchParams, 'db', $this->model->getTable() . '.' . $key);
-        $realvalue = $this->getFilterRealvalue($value);
-
-        if ($realvalue === null) {
-            return $builder;
-        }
-
-        $studly_op = studly_case($op);
-        switch ($studly_op) {
-            case 'Like':
-                return $builder->where($searchDB, 'LIKE', '%' . $realvalue . '%');
-            case 'Date':
-                return $builder->where($searchDB, '>=', $realvalue . ' 00:00:00')
-                    ->where($searchDB, '<=', $realvalue . ' 23:59:59');
-            case 'Is':
-                return $builder->where($searchDB, 'IS', $realvalue);
-            case 'IsNot':
-                return $builder->where($searchDB, 'IS NOT', $realvalue);
-            case 'IsNull':
-                if ($realvalue == 'not') {
-                    return $builder->whereNotNull($searchDB);
-                } else {
-                    return $builder->whereNull($searchDB);
-                }
-            case 'In':
-            case 'NotIn':
-                if (empty($value)) {
-                    $value = array(-1);
-                }
-                if (!is_array($value)) {
-                    $value = array($value);
-                }
-                if ($studly_op == 'In') {
-                    return $builder->whereIn($searchDB, $value);
-                } else {
-                    return $builder->whereNotIn($searchDB, $value);
-                }
-            case 'Between':
-                if (!is_array($value)) {
-                    return $builder;
-                }
-                $value1 = array_get($value, 0);
-                $value2 = array_get($value, 1);
-                if (!$value2) {
-                    return $builder->where($searchDB, '>=', $value1);
-                }
-                if (!$value1) {
-                    return $builder->where($searchDB, '<=', $value2);
-                }
-                return $builder->whereBetween($searchDB, [$value1, $value2]);
-            default:
-                return $builder->where($searchDB, $op, $value);
-        }
-    }
-
-    public function buildSearchFilterDatatable($key, $value, $op = '=', $builder = null, $searchInputs = [])
-    {
-        $studly_op = studly_case($op);
-        if ($studly_op != 'Datatable' || $key != 'datatable') {
-            return $builder;
-        }
-
-        $searchFields = Input::get('datatable_fields',[]);
-        if (!is_array($searchFields)) {
-            return $builder;
-        }
-
-
-        $value = is_array($value) ? $value[0] : $value;
-
-        $searchParams = array_get($this->searchParams, $key, array());
-
-
-        $builder->where(function ($query) use ($value,$searchFields,$searchParams) {
-            foreach ($searchFields as $searchField) {
-                $searchDB = array_get($searchParams, 'db', $this->model->getTable() . '.' . $searchField);
-                $query->orWhere($searchDB, 'LIKE', '%' . $value . '%');
-            }
-        });
-
-        return $builder;
-
-    }
-
-    public function buildSearchFilterDateIn($key, $value, $op = '=', $builder = null, $searchInputs = [])
-    {
-        $studly_op = studly_case($op);
-        if ($studly_op != 'DateIn') {
-            return $builder;
-        }
-        $searchParams = array_get($this->searchParams, $key, array());
-        $searchDB = array_get($searchParams, 'db', $this->model->getTable() . '.' . $key);
-
-        //DA SISTEMARE
-        if (is_array($value)) {
-            $firstValue = array_get($value, 0, false);
-            $secondValue = array_get($value, 1, false);
-            if (!$firstValue && !$secondValue) {
-                return $builder;
-            }
-            if (!$firstValue) {
-                $firstValue = '1900-01-01';
-            }
-            if (!$secondValue) {
-                $secondValue = '2100-12-31';
-            }
-
-            if (strlen($firstValue) == 10) {
-                $firstValue .= ' 00:00:00';
-            }
-
-            if (strlen($secondValue) == 10) {
-                $secondValue .= ' 23:59:59';
-            }
-
-        }
-
-        $endField = array_get($searchParams, 'end_date_in_field', false);
-        if ($endField) {
-
-            $searchDBEnd = array_get($searchParams, 'db', $this->model->getTable() . '.' . $endField);
-
-            $resultQuery = $builder->where(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
-                $query->orWhere(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
-                    $query->where($searchDB, '>=', $firstValue)
-                        ->where($searchDB, '<=', $secondValue);
-                })->orWhere(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
-                    $query->where($searchDBEnd, '>=', $firstValue)
-                        ->where($searchDBEnd, '<=', $secondValue);
-                })->orWhere(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
-                    $query->where($searchDBEnd, '>', $secondValue)
-                        ->where($searchDB, '<=', $firstValue);
-                });
-            });
-
-            return $resultQuery;
-
-        }
-
-
-        return $builder->where($searchDB, '>=', $firstValue)
-            ->where($searchDB, '<=', $secondValue);
-    }
-
-    public function buildSearchFilterRelation($relation, $key, $value, $op = '=', $builder = null, $searchInputs = [])
-    {
-        $searchParams = array_get($this->searchParams, $key, array());
-        $relationModelData = $this->getRelationDataFromModel($relation);
-        //Da controllare: in questo non ho la relatzione nel modello
-        if (count($relationModelData) < 1) {
-            return $builder;
-        }
-
-        $relationModelName = $relationModelData['modelName'];
-        $relationModel = new $relationModelName;
-
-        $dbName = Config::get('database.connections.' . $relationModel->getConnectionName() . '.database');
-
-        $searchDB = array_get($searchParams, 'db', $dbName . '.' . $relationModel->getTable() . '.' . $key);
-        $realvalue = $this->getFilterRealvalue($value);
-
-        if ($realvalue === null) {
-            return $builder;
-        }
-
-        $studly_op = studly_case($op);
-
-
-        switch ($studly_op) {
-            case 'Like':
-                return $builder->whereHas($relation, function ($q) use ($searchDB, $realvalue) {
-                    $q->where($searchDB, 'LIKE', '%' . $realvalue . '%');
-                });
-            case 'Date':
-                return $builder->whereHas($relation, function ($q) use ($searchDB, $realvalue) {
-                    $q->where($searchDB, '>=', $realvalue . ' 00:00:00')
-                        ->where($searchDB, '<=', $realvalue . ' 23:59:59');
-                });
-            case 'Is':
-                return $builder->whereHas($relation, function ($q) use ($searchDB, $realvalue) {
-                    $q->where($searchDB, 'IS', $realvalue);
-                });
-            case 'IsNot':
-                return $builder->whereHas($relation, function ($q) use ($searchDB, $realvalue) {
-                    $q->where($searchDB, 'IS NOT', $realvalue);
-                });
-            case 'IsNull':
-                if ($realvalue == 'not') {
-                    return $builder->whereHas($relation, function ($q) use ($searchDB) {
-                        $q->whereNotNull($searchDB);
-                    });
-                } else {
-                    return $builder->whereHas($relation, function ($q) use ($searchDB) {
-                        $q->whereNull($searchDB);
-                    });
-                }
-            case 'In':
-            case 'NotIn':
-                if (empty($value)) {
-                    $value = array(-1);
-                }
-                if (!is_array($value)) {
-                    $value = array($value);
-                }
-                if ($studly_op == 'In') {
-                    return $builder->whereHas($relation, function ($q) use ($searchDB, $value) {
-                        $q->whereIn($searchDB, $value);
-                    });
-                } else {
-                    return $builder->whereHas($relation, function ($q) use ($searchDB, $value) {
-                        $q->whereNotIn($searchDB, $value);
-                    });
-                }
-            case 'Between':
-                if (!is_array($value)) {
-                    return $builder;
-                }
-                $value1 = array_get($value, 0, false);
-                $value2 = array_get($value, 1, false);
-                if (!$value2) {
-                    return $builder->whereHas($relation, function ($q) use ($searchDB, $value1) {
-                        $q->where($searchDB, '>=', $value1);
-                    });
-                }
-                if (!$value1) {
-                    return $builder->whereHas($relation, function ($q) use ($searchDB, $value2) {
-                        $q->where($searchDB, '<=', $value2);
-                    });
-                }
-                return $builder->whereHas($relation, function ($q) use ($searchDB, $value1, $value2) {
-                    $q->whereBetween($searchDB, [$value1, $value2]);
-                });
-            default:
-                return $builder->whereHas($relation, function ($q) use ($searchDB, $value, $op) {
-                    $q->where($searchDB, $op, $value);
-                });
-        }
-    }
-
-    public function buildSearchFilterRelationDateIn($relation, $key, $value, $op = '=', $builder = null, $searchInputs = [])
-    {
-        $searchParams = array_get($this->searchParams, $key, array());
-        $relationModelData = $this->getRelationDataFromModel($relation);
-        //Da controllare: in questo non ho la relatzione nel modello
-        if (count($relationModelData) < 1) {
-            return $builder;
-        }
-
-        $relationModelName = $relationModelData['modelName'];
-        $relationModel = new $relationModelName;
-
-        $dbName = Config::get('database.connections.' . $relationModel->getConnectionName() . '.database');
-
-        $studly_op = studly_case($op);
-        if ($studly_op != 'DateIn') {
-            return $builder;
-        }
-
-        $searchParams = array_get($this->searchParams, $key, array());
-        $searchDB = array_get($searchParams, 'db', $dbName . '.' . $relationModel->getTable() . '.' . $key);
-
-        //DA SISTEMARE
-        if (!is_array($value)) {
-            return $builder;
-        }
-        $firstValue = array_get($value, 0, false);
-        $secondValue = array_get($value, 1, false);
-        if (!$firstValue && !$secondValue) {
-            return $builder;
-        }
-
-
-        if (!$firstValue) {
-            $firstValue = '1900-01-01';
-        }
-        if (!$secondValue) {
-            $secondValue = '2100-12-31';
-        }
-
-        if (strlen($firstValue) == 10) {
-            $firstValue .= ' 00:00:00';
-        }
-
-        if (strlen($secondValue) == 10) {
-            $secondValue .= ' 23:59:59';
-        }
-
-
-        $endField = array_get($searchParams, 'end_date_in_field', false);
-        if ($endField) {
-
-            $searchDBEnd = array_get($searchParams, 'db', $dbName . '.' . $relationModel->getTable() . '.' . $endField);
-
-            $resultQuery = $builder->whereHas($relation, function ($qRel) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
-
-                    $qRel->where(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
-                        $query->orWhere(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
-                            $query->where($searchDB, '>=', $firstValue)
-                                ->where($searchDB, '<=', $secondValue);
-                        })->orWhere(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
-                            $query->where($searchDBEnd, '>=', $firstValue)
-                                ->where($searchDBEnd, '<=', $secondValue);
-                        })->orWhere(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
-                            $query->where($searchDBEnd, '>', $secondValue)
-                                ->where($searchDB, '<=', $firstValue);
-                        });
-                    });
-            });
-
-            return $resultQuery;
-
-        }
-
-        return $builder->whereHas($relation, function ($q) use ($searchDB, $firstValue, $secondValue) {
-            $q->whereBetween($searchDB, [$firstValue,$secondValue]);
-        });
-    }
 
 
     public function buildOrder($key, $direction, $builder = null)
@@ -967,5 +631,348 @@ class ModelForm extends Form
 
     }
 
+
+
+
+    /*
+     * METODI PER IL SEARCH GIA' RISTRUTTURATI
+     */
+
+    protected function getFilterRealvalue($value)
+    {
+        $realvalue = null;
+        if (is_string($value)) {
+            $realvalue = $value;
+        }
+        if (is_array($value)) {
+            $firstValue = array_get($value, 0, false);
+            if ($firstValue !== false && $firstValue !== '') {
+                $realvalue = $value[0];
+            }
+        }
+
+        return $realvalue;
+    }
+
+    public function buildSearchFilter($key, $value, $op = '=', $builder = null, $searchInputs = [])
+    {
+        $searchParams = array_get($this->searchParams, $key, array());
+        $searchDB = array_get($searchParams, 'db', $this->model->getTable() . '.' . $key);
+        $realvalue = $this->getFilterRealvalue($value);
+
+        if ($realvalue === null) {
+            return $builder;
+        }
+
+        $studly_op = studly_case($op);
+        switch ($studly_op) {
+            case 'Like':
+                return $builder->where($searchDB, 'LIKE', '%' . $realvalue . '%');
+            case 'Date':
+                return $builder->where($searchDB, '>=', $realvalue . ' 00:00:00')
+                    ->where($searchDB, '<=', $realvalue . ' 23:59:59');
+            case 'Is':
+                return $builder->where($searchDB, 'IS', $realvalue);
+            case 'IsNot':
+                return $builder->where($searchDB, 'IS NOT', $realvalue);
+            case 'IsNull':
+                if ($realvalue == 'not') {
+                    return $builder->whereNotNull($searchDB);
+                } else {
+                    return $builder->whereNull($searchDB);
+                }
+            case 'In':
+            case 'NotIn':
+                if (empty($value)) {
+                    $value = array(-1);
+                }
+                if (!is_array($value)) {
+                    $value = array($value);
+                }
+                if ($studly_op == 'In') {
+                    return $builder->whereIn($searchDB, $value);
+                } else {
+                    return $builder->whereNotIn($searchDB, $value);
+                }
+            case 'Between':
+                if (!is_array($value)) {
+                    return $builder;
+                }
+                $value1 = array_get($value, 0);
+                $value2 = array_get($value, 1);
+                if (!$value2) {
+                    return $builder->where($searchDB, '>=', $value1);
+                }
+                if (!$value1) {
+                    return $builder->where($searchDB, '<=', $value2);
+                }
+                return $builder->whereBetween($searchDB, [$value1, $value2]);
+            default:
+                return $builder->where($searchDB, $op, $value);
+        }
+    }
+
+    public function buildSearchFilterDatatable($key, $value, $op = '=', $builder = null, $searchInputs = [])
+    {
+        $studly_op = studly_case($op);
+        if ($studly_op != 'Datatable' || $key != 'datatable') {
+            return $builder;
+        }
+
+        $searchFields = Input::get('datatable_fields',[]);
+        if (!is_array($searchFields)) {
+            return $builder;
+        }
+
+
+        $value = is_array($value) ? $value[0] : $value;
+
+        $searchParams = array_get($this->searchParams, $key, array());
+
+
+        $builder->where(function ($query) use ($value,$searchFields,$searchParams) {
+            foreach ($searchFields as $searchField) {
+                $searchDB = array_get($searchParams, 'db', $this->model->getTable() . '.' . $searchField);
+                $query->orWhere($searchDB, 'LIKE', '%' . $value . '%');
+            }
+        });
+
+        return $builder;
+
+    }
+
+    public function buildSearchFilterDateIn($key, $value, $op = '=', $builder = null, $searchInputs = [])
+    {
+        $studly_op = studly_case($op);
+        if ($studly_op != 'DateIn') {
+            return $builder;
+        }
+        $searchParams = array_get($this->searchParams, $key, array());
+        $searchDB = array_get($searchParams, 'db', $this->model->getTable() . '.' . $key);
+
+        //DA SISTEMARE
+        if (is_array($value)) {
+            $firstValue = array_get($value, 0, false);
+            $secondValue = array_get($value, 1, false);
+            if (!$firstValue && !$secondValue) {
+                return $builder;
+            }
+            if (!$firstValue) {
+                $firstValue = '1900-01-01';
+            }
+            if (!$secondValue) {
+                $secondValue = '2100-12-31';
+            }
+
+            if (strlen($firstValue) == 10) {
+                $firstValue .= ' 00:00:00';
+            }
+
+            if (strlen($secondValue) == 10) {
+                $secondValue .= ' 23:59:59';
+            }
+
+        }
+
+        $endField = array_get($searchParams, 'end_date_in_field', false);
+        if ($endField) {
+
+            $searchDBEnd = array_get($searchParams, 'db', $this->model->getTable() . '.' . $endField);
+
+            $resultQuery = $builder->where(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
+                $query->orWhere(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
+                    $query->where($searchDB, '>=', $firstValue)
+                        ->where($searchDB, '<=', $secondValue);
+                })->orWhere(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
+                    $query->where($searchDBEnd, '>=', $firstValue)
+                        ->where($searchDBEnd, '<=', $secondValue);
+                })->orWhere(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
+                    $query->where($searchDBEnd, '>', $secondValue)
+                        ->where($searchDB, '<=', $firstValue);
+                });
+            });
+
+            return $resultQuery;
+
+        }
+
+
+        return $builder->where($searchDB, '>=', $firstValue)
+            ->where($searchDB, '<=', $secondValue);
+    }
+
+    public function buildSearchFilterRelation($relation, $key, $value, $op = '=', $builder = null, $searchInputs = [])
+    {
+        $searchParams = array_get($this->searchParams, $key, array());
+        $relationModelData = $this->getRelationDataFromModel($relation);
+        //Da controllare: in questo non ho la relatzione nel modello
+        if (count($relationModelData) < 1) {
+            return $builder;
+        }
+
+        $relationModelName = $relationModelData['modelName'];
+        $relationModel = new $relationModelName;
+
+        $dbName = Config::get('database.connections.' . $relationModel->getConnectionName() . '.database');
+
+        $searchDB = array_get($searchParams, 'db', $dbName . '.' . $relationModel->getTable() . '.' . $key);
+        $realvalue = $this->getFilterRealvalue($value);
+
+        if ($realvalue === null) {
+            return $builder;
+        }
+
+        $studly_op = studly_case($op);
+
+
+        switch ($studly_op) {
+            case 'Like':
+                return $builder->whereHas($relation, function ($q) use ($searchDB, $realvalue) {
+                    $q->where($searchDB, 'LIKE', '%' . $realvalue . '%');
+                });
+            case 'Date':
+                return $builder->whereHas($relation, function ($q) use ($searchDB, $realvalue) {
+                    $q->where($searchDB, '>=', $realvalue . ' 00:00:00')
+                        ->where($searchDB, '<=', $realvalue . ' 23:59:59');
+                });
+            case 'Is':
+                return $builder->whereHas($relation, function ($q) use ($searchDB, $realvalue) {
+                    $q->where($searchDB, 'IS', $realvalue);
+                });
+            case 'IsNot':
+                return $builder->whereHas($relation, function ($q) use ($searchDB, $realvalue) {
+                    $q->where($searchDB, 'IS NOT', $realvalue);
+                });
+            case 'IsNull':
+                if ($realvalue == 'not') {
+                    return $builder->whereHas($relation, function ($q) use ($searchDB) {
+                        $q->whereNotNull($searchDB);
+                    });
+                } else {
+                    return $builder->whereHas($relation, function ($q) use ($searchDB) {
+                        $q->whereNull($searchDB);
+                    });
+                }
+            case 'In':
+            case 'NotIn':
+                if (empty($value)) {
+                    $value = array(-1);
+                }
+                if (!is_array($value)) {
+                    $value = array($value);
+                }
+                if ($studly_op == 'In') {
+                    return $builder->whereHas($relation, function ($q) use ($searchDB, $value) {
+                        $q->whereIn($searchDB, $value);
+                    });
+                } else {
+                    return $builder->whereHas($relation, function ($q) use ($searchDB, $value) {
+                        $q->whereNotIn($searchDB, $value);
+                    });
+                }
+            case 'Between':
+                if (!is_array($value)) {
+                    return $builder;
+                }
+                $value1 = array_get($value, 0, false);
+                $value2 = array_get($value, 1, false);
+                if (!$value2) {
+                    return $builder->whereHas($relation, function ($q) use ($searchDB, $value1) {
+                        $q->where($searchDB, '>=', $value1);
+                    });
+                }
+                if (!$value1) {
+                    return $builder->whereHas($relation, function ($q) use ($searchDB, $value2) {
+                        $q->where($searchDB, '<=', $value2);
+                    });
+                }
+                return $builder->whereHas($relation, function ($q) use ($searchDB, $value1, $value2) {
+                    $q->whereBetween($searchDB, [$value1, $value2]);
+                });
+            default:
+                return $builder->whereHas($relation, function ($q) use ($searchDB, $value, $op) {
+                    $q->where($searchDB, $op, $value);
+                });
+        }
+    }
+
+    public function buildSearchFilterRelationDateIn($relation, $key, $value, $op = '=', $builder = null, $searchInputs = [])
+    {
+        $searchParams = array_get($this->searchParams, $key, array());
+        $relationModelData = $this->getRelationDataFromModel($relation);
+        //Da controllare: in questo non ho la relatzione nel modello
+        if (count($relationModelData) < 1) {
+            return $builder;
+        }
+
+        $relationModelName = $relationModelData['modelName'];
+        $relationModel = new $relationModelName;
+
+        $dbName = Config::get('database.connections.' . $relationModel->getConnectionName() . '.database');
+
+        $studly_op = studly_case($op);
+        if ($studly_op != 'DateIn') {
+            return $builder;
+        }
+
+        $searchParams = array_get($this->searchParams, $key, array());
+        $searchDB = array_get($searchParams, 'db', $dbName . '.' . $relationModel->getTable() . '.' . $key);
+
+        //DA SISTEMARE
+        if (!is_array($value)) {
+            return $builder;
+        }
+        $firstValue = array_get($value, 0, false);
+        $secondValue = array_get($value, 1, false);
+        if (!$firstValue && !$secondValue) {
+            return $builder;
+        }
+
+
+        if (!$firstValue) {
+            $firstValue = '1900-01-01';
+        }
+        if (!$secondValue) {
+            $secondValue = '2100-12-31';
+        }
+
+        if (strlen($firstValue) == 10) {
+            $firstValue .= ' 00:00:00';
+        }
+
+        if (strlen($secondValue) == 10) {
+            $secondValue .= ' 23:59:59';
+        }
+
+
+        $endField = array_get($searchParams, 'end_date_in_field', false);
+        if ($endField) {
+
+            $searchDBEnd = array_get($searchParams, 'db', $dbName . '.' . $relationModel->getTable() . '.' . $endField);
+
+            $resultQuery = $builder->whereHas($relation, function ($qRel) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
+
+                $qRel->where(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
+                    $query->orWhere(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
+                        $query->where($searchDB, '>=', $firstValue)
+                            ->where($searchDB, '<=', $secondValue);
+                    })->orWhere(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
+                        $query->where($searchDBEnd, '>=', $firstValue)
+                            ->where($searchDBEnd, '<=', $secondValue);
+                    })->orWhere(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
+                        $query->where($searchDBEnd, '>', $secondValue)
+                            ->where($searchDB, '<=', $firstValue);
+                    });
+                });
+            });
+
+            return $resultQuery;
+
+        }
+
+        return $builder->whereHas($relation, function ($q) use ($searchDB, $firstValue, $secondValue) {
+            $q->whereBetween($searchDB, [$firstValue,$secondValue]);
+        });
+    }
 
 }

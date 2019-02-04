@@ -81,6 +81,12 @@ trait ConstraintBuilderTrait
                 }
                 return $builder->whereBetween($field, [$value1, $value2]);
             default:
+                $methodName = 'buildSearchFilter' . $studly_op;
+
+                if (method_exists($this, $methodName)) {
+                    return $this->$methodName($builder, $field, $value, $params);
+                }
+
                 return $builder->where($field, $op, $value);
         }
     }
@@ -89,7 +95,7 @@ trait ConstraintBuilderTrait
     /*
      * Constraint method for handling a field value which should between two dates passed in
      */
-    public function buildConstraintDateIn($builder, $field, $value, $op = '=', $params = [])
+    public function buildConstraintDateIn($builder, $field, $value, $params = [])
     {
 
         if (!is_array($value)) {
@@ -110,7 +116,7 @@ trait ConstraintBuilderTrait
 
             $firstDate = $this->checkDateArg($firstValue);
 
-            $secondDate = $this->checkDateArg($secondValue,true);
+            $secondDate = $this->checkDateArg($secondValue, true);
 
             if (!$firstDate && !$secondDate) {
                 $invalidInterval = true;
@@ -142,7 +148,7 @@ trait ConstraintBuilderTrait
      * the first interval built from two field values
      * and the second interval passed in as the value
      */
-    public function buildConstraintDateIntersection($builder, $field, $value, $op = '=', $params = [])
+    public function buildConstraintDateIntersection($builder, $field, $value, $params = [])
     {
 
         if (!is_array($value)) {
@@ -158,7 +164,7 @@ trait ConstraintBuilderTrait
 
         $firstDate = $this->checkDateArg($firstValue);
 
-        $secondDate = $this->checkDateArg($secondValue,true);
+        $secondDate = $this->checkDateArg($secondValue, true);
 
         if (!$firstDate || !$secondDate) {
             throw new \InvalidArgumentException("The value for a date_intersection constraint should be an array of two dates");
@@ -186,6 +192,32 @@ trait ConstraintBuilderTrait
 
 
     }
+
+    /*
+     * Constraint for handling the jquery datatable search standard format
+     */
+    public function buildSearchFilterDatatable($builder, $field, $value, $params = [])
+    {
+
+        $searchFields = array_get($params,'datatable_fields', []);
+        if (!is_array($searchFields)) {
+            return $builder;
+        }
+
+
+        $value = is_array($value) ? $value[0] : $value;
+
+
+        $builder->where(function ($query) use ($value, $searchFields) {
+            foreach ($searchFields as $searchField) {
+                $query->orWhere($searchField, 'LIKE', '%' . $value . '%');
+            }
+        });
+
+        return $builder;
+
+    }
+
 
     public function buildConstraintRelation($relation, $builder, $field, $value, $op = '=', $params = [])
     {
@@ -248,6 +280,12 @@ trait ConstraintBuilderTrait
                     $q->whereBetween($field, [$value1, $value2]);
                 });
             default:
+                $methodName = 'buildSearchFilterRelation' . $studly_op;
+
+                if (method_exists($this, $methodName)) {
+                    return $this->$methodName($builder, $field, $value, $params);
+                }
+
                 return $builder->whereHas($relation, function ($q) use ($field, $value, $op) {
                     $q->where($field, $op, $value);
                 });
@@ -257,7 +295,7 @@ trait ConstraintBuilderTrait
     /*
      * Constraint method for handling a relation field value which should between two dates passed in
      */
-    public function buildConstraintRelationDateIn($relation, $builder, $field, $value, $op = '=', $params = [])
+    public function buildConstraintRelationDateIn($relation, $builder, $field, $value, $params = [])
     {
 
         if (!is_array($value)) {
@@ -278,7 +316,7 @@ trait ConstraintBuilderTrait
 
             $firstDate = $this->checkDateArg($firstValue);
 
-            $secondDate = $this->checkDateArg($secondValue,true);
+            $secondDate = $this->checkDateArg($secondValue, true);
 
             if (!$firstDate && !$secondDate) {
                 $invalidInterval = true;
@@ -291,14 +329,14 @@ trait ConstraintBuilderTrait
         }
 
         if (!$firstDate) {
-            return $builder->whereHas($relation, function ($q) use ($field,$secondValue) {
+            return $builder->whereHas($relation, function ($q) use ($field, $secondValue) {
                 $q->where($field, '<=', $secondValue);
             });
 
         }
 
         if (!$secondDate) {
-            return $builder->whereHas($relation, function ($q) use ($field,$firstValue) {
+            return $builder->whereHas($relation, function ($q) use ($field, $firstValue) {
                 $q->where($field, '>=', $firstValue);
             });
 
@@ -313,13 +351,12 @@ trait ConstraintBuilderTrait
     }
 
 
-
     /*
      * Constraint method for handling an intersection of two intervals of dates:
      * the first interval built from two field values
      * and the second interval passed in as the value
      */
-    public function buildConstraintRelationDateIntersection($relation, $builder, $field, $value, $op = '=', $params = [])
+    public function buildConstraintRelationDateIntersection($relation, $builder, $field, $value, $params = [])
     {
 
         if (!is_array($value)) {
@@ -335,7 +372,7 @@ trait ConstraintBuilderTrait
 
         $firstDate = $this->checkDateArg($firstValue);
 
-        $secondDate = $this->checkDateArg($secondValue,true);
+        $secondDate = $this->checkDateArg($secondValue, true);
 
         if (!$firstDate || !$secondDate) {
             throw new \InvalidArgumentException("The value for a date_intersection constraint should be an array of two dates");
@@ -355,8 +392,8 @@ trait ConstraintBuilderTrait
                 })->orWhere(function ($query) use ($field, $endField, $firstValue, $secondValue) {
                     $query->where($endField, '>=', $firstValue)
                         ->where($endField, '<=', $secondValue);
-                })->orWhere(function ($query) use ($field, $endfield, $firstValue, $secondValue) {
-                    $query->where($endfield, '>', $secondValue)
+                })->orWhere(function ($query) use ($field, $endField, $firstValue, $secondValue) {
+                    $query->where($endField, '>', $secondValue)
                         ->where($field, '<=', $firstValue);
                 });
             });
@@ -366,7 +403,8 @@ trait ConstraintBuilderTrait
 
     }
 
-    protected function checkDateArg($date,$endDate = false) {
+    protected function checkDateArg($date, $endDate = false)
+    {
         if (strlen($date) == 10) {
             $timeSuffix = $endDate ? ' 23:59:59' : ' 00:00:00';
             $date .= $timeSuffix;
@@ -377,6 +415,64 @@ trait ConstraintBuilderTrait
             $date = null;
         }
         return $date;
+
+    }
+
+    public function applyConstraint(array $constraintArray) {
+
+
+        $field = array_get($constraintArray,'field',null);
+
+        if (!$field || !is_string($field) || !array_key_exists('value',$constraintArray)) {
+            return $this->formBuilder;
+        };
+
+        $value = $constraintArray['value'];
+
+        $isRelation = false;
+        $fieldExploded = explode('.',$field);
+        if (count($fieldExploded) > 1) {
+            $isRelation = true;
+            $relation = $fieldExploded[0];
+            unset($fieldExploded[0]);
+            $field = implode('.',$fieldExploded);
+
+            $relationData = array_get($this->relations,$relation,[]);
+            if (!array_key_exists('modelName',$relationData)) {
+                return $this->formBuilder;
+            }
+
+            $relationModelName = $relationData['modelName'];
+            $relationModel = new $relationModelName;
+            $dbName = Config::get('database.connections.' . $relationModel->getConnectionName() . '.database');
+
+
+            $table = array_get($constraintArray,'table',$relationModel->getTable());
+            $db = array_get($constraintArray,'db');
+        } else {
+            $table = array_get($constraintArray,'table',$this->model->getTable());
+            $db = array_get($constraintArray,'db');
+        }
+
+
+
+        $dbField = $db ? $db . '.' : '';
+        $dbField .= $table ? $table . '.' : '';
+        $dbField .= $field;
+
+        $op = array_get($constraintArray,'op','=');
+        $params = array_get($constraintArray,'params',[]);
+
+
+        if ($isRelation) {
+            $this->formBuilder = $this->buildConstraintRelation($relation,$this->formBuilder,$dbField,$value,$op,$params);
+
+        } else {
+            $this->formBuilder = $this->buildConstraint($this->formBuilder,$dbField,$value,$op,$params);
+        }
+
+
+        return $this->formBuilder;
 
     }
 }
