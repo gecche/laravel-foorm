@@ -4,6 +4,7 @@ namespace Gecche\Foorm;
 
 use Cupparis\Acl\Facades\Acl;
 use Cupparis\Ardent\Ardent;
+use Gecche\DBHelper\Contracts\DBHelper;
 use Gecche\Foorm\Contracts\ListBuilder;
 use Gecche\ModelPlus\ModelPlus;
 use Illuminate\Support\Facades\Cache;
@@ -79,6 +80,17 @@ class FormList
      */
     protected $config;
 
+    /**
+     * @var DBHelper
+     */
+    protected $dbHelper;
+
+    /**
+     * FormList constructor.
+     * @param array $input
+     * @param ModelPlus $model
+     * @param array $params
+     */
     public function __construct($input = [], ModelPlus $model, $params = [])
     {
 
@@ -88,6 +100,8 @@ class FormList
 
         $this->modelName = get_class($this->model);
         $this->modelRelativeName = trim_namespace($this->getModelsNamespace(), $this->modelName);
+
+        $this->dbHelper = DBHelper::helper($this->model->getConnectionName());
 
         $this->config = config('foorm.defaults', []);
     }
@@ -568,7 +582,7 @@ class FormList
     public function setFormMetadata() {
 
 
-        $this->resultParams = $this->db_methods->listColumnsDefault($this->model->getTable());
+        $this->resultParams = $this->dbHelper->listColumnsDefault($this->model->getTable());
 
         $this->setResultParamsAppendsDefaults();
         $this->setResultParamsDefaults();
@@ -599,7 +613,7 @@ class FormList
         foreach ($this->hasManies as $key => $value) {
             $modelName = $value['modelName'];
             $model = new $modelName;
-            $value["fields"] = $this->db_methods->listColumnsDefault($model->getTable());
+            $value["fields"] = $this->dbHelper->listColumnsDefault($model->getTable());
 
             $this->resultParams[$key] = $value;
         }

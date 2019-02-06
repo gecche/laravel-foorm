@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Input;
 use Exception;
 use Illuminate\Support\Facades\Config;
 
-class Form implements FormInterface {
+class FormOld implements FormInterface {
 
     protected $validationRules = array();
     protected $validator = null;
