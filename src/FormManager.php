@@ -7,73 +7,25 @@ use Cupparis\Ardent\Ardent;
 use Gecche\DBHelper\Contracts\DBHelper;
 use Gecche\Foorm\Contracts\ListBuilder;
 use Gecche\ModelPlus\ModelPlus;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Log;
 
-class FormList
+class FormManager
 {
 
-    use ConstraintBuilderTrait;
-    use OrderBuilderTrait;
-    use AggregateBuilderTrait;
-
     /**
-     * @var array
+     * @var Request
      */
-    protected $input;
-
-    /**
-     * @var ModelPlus
-     */
-    protected $model;
-
-    /**
-     * @var array
-     */
-    protected $params;
+    protected $request;
 
     /**
      * @var string
      */
-    protected $modelName;
-
-    /**
-     * @var string
-     */
-    protected $modelRelativeName;
-
-    /**
-     * @var string
-     */
-    protected $primary_key_field;
-
-
-    protected $relations;
-    protected $inactiveRelations;
-
-
-    /**
-     * @var mixed
-     */
-    protected $formData;
-
-    /**
-     * @var Array
-     */
-    protected $formAggregatesData;
-
-    /**
-     * @var mixed
-     */
-    protected $formMetadata;
-
-    /**
-     * @var \Closure|null
-     */
-    protected $listBuilder;
+    protected $formName;
 
     /**
      * @var Array
@@ -81,9 +33,16 @@ class FormList
     protected $config;
 
     /**
-     * @var DBHelper
+     * @var string
      */
-    protected $dbHelper;
+    protected $models_namespace;
+
+
+    /**
+     * @var string
+     */
+    protected $foorms_namespace;
+
 
     /**
      * FormList constructor.
@@ -91,22 +50,89 @@ class FormList
      * @param ModelPlus $model
      * @param array $params
      */
-    public function __construct($input = [], ModelPlus $model, $params = [])
+    public function __construct($formName,Request $request)
     {
 
-        $this->input = $input;
-        $this->model = $model;
-        $this->params = $params;
+        $this->formName = $formName;
+        $this->request = $request;
 
-        $this->modelName = get_class($this->model);
-        $this->modelRelativeName = trim_namespace($this->getModelsNamespace(), $this->modelName);
+    }
 
-        $this->dbHelper = DBHelper::helper($this->model->getConnectionName());
+    /**
+     * @return Request
+     */
+    public function getRequest()
+    {
+        return $this->request;
+    }
 
-        $this->config = config('foorm.defaults', []);
+    /**
+     * @return string
+     */
+    public function getFormName()
+    {
+        return $this->formName;
+    }
+
+
+
+    public function getConfig() {
+
+        $defaultConfigDot = array_dot(config('foorm',[]));
+
+        $this->models_namespace = array_get($defaultConfigDot,'models_namespace',"App\\");
+        $this->foorms_namespace = array_get($defaultConfigDot,'foorms_namespace',"App\\Foorm\\");
+        $this->foorms_defaults_namespace = array_get($defaultConfigDot,'foorms_defaults_namespace',"Gecche\\Foorm\\");
+
+        $formNameParts = explode('.',$this->formName);
+        if (count($formNameParts) != 2) {
+            throw new \InvalidArgumentException('A foorm name should be of type "<FORMNAME>.<FORMTYPE>".');
+        }
+
+        $formConfig = config('foorms.'.$this->formName,false);
+
+        if (!is_array($formConfig)) {
+            throw new \InvalidArgumentException('Configuration of foorm '.$this->formName.' not found');
+        }
+
+        $snakeModelName = array_get($formConfig,'model',$formNameParts[0]);
+        $relativeModelName = studly_case($snakeModelName);
+        $fullModelName = $this->models_namespace . $relativeModelName;
+
+        if (!class_exists($fullModelName))
+            throw new \InvalidArgumentException("Model class $fullModelName does not exists");
+
+        $model = new $fullModelName;
+
+
+        $snakeFormName = $formNameParts[1];
+        $relativeFormName = studly_case($snakeFormName);
+        $fullFormName = $this->foorms_namespace . $relativeModelName . "\\" . $relativeFormName;
+
+
+        if (!class_exists($fullFormName)) {//Example: exists App\Foorm\User\List class?
+
+            $fullFormName = $this->foorms_namespace . $relativeFormName;
+            if (!class_exists($fullFormName)) {//Example: exists App\Foorm\List class?
+                $fullFormName = $this->foorms_defaults_namespace . $relativeFormName;
+
+                if (!class_exists($fullFormName)) {//Example: exists Gecche\Foorm\List class?
+                    throw new \InvalidArgumentException("Form class not found");
+                }
+
+            }
+
+        }
+
+
+        $form = new $fullFormName; //DA FINIRE A BESTIA MA MI SEMBRA LA STRAD GIUSTA
+
+
 
 
     }
+
+
 
     /**
      * @return Array
