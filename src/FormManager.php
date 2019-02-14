@@ -32,16 +32,11 @@ class FormManager
      */
     protected $config;
 
-    /**
-     * @var string
-     */
-    protected $models_namespace;
+    protected $model;
 
+    protected $form;
 
-    /**
-     * @var string
-     */
-    protected $foorms_namespace;
+    protected $params;
 
 
     /**
@@ -50,11 +45,16 @@ class FormManager
      * @param ModelPlus $model
      * @param array $params
      */
-    public function __construct($formName,Request $request)
+    public function __construct($formName,Request $request,$params = [])
     {
 
         $this->formName = $formName;
         $this->request = $request;
+        $this->params = $params;
+        $this->getConfig();
+        $this->setModel();
+        $this->setForm();
+
 
     }
 
@@ -78,11 +78,11 @@ class FormManager
 
     public function getConfig() {
 
-        $defaultConfigDot = array_dot(config('foorm',[]));
+        $defaultConfig = config('foorm',[]);
 
-        $this->models_namespace = array_get($defaultConfigDot,'models_namespace',"App\\");
-        $this->foorms_namespace = array_get($defaultConfigDot,'foorms_namespace',"App\\Foorm\\");
-        $this->foorms_defaults_namespace = array_get($defaultConfigDot,'foorms_defaults_namespace',"Gecche\\Foorm\\");
+        $modelsNamespace = array_get($defaultConfig,'models_namespace',"App\\");
+        $foormsNamespace = array_get($defaultConfig,'foorms_namespace',"App\\Foorm\\");
+        $foormsDefaultsNamespace = array_get($defaultConfig,'foorms_defaults_namespace',"Gecche\\Foorm\\");
 
         $formNameParts = explode('.',$this->formName);
         if (count($formNameParts) != 2) {
@@ -95,26 +95,28 @@ class FormManager
             throw new \InvalidArgumentException('Configuration of foorm '.$this->formName.' not found');
         }
 
+        $finalConfig = array_replace_recursive($defaultConfig,$formConfig);
+
         $snakeModelName = array_get($formConfig,'model',$formNameParts[0]);
+
+
         $relativeModelName = studly_case($snakeModelName);
-        $fullModelName = $this->models_namespace . $relativeModelName;
+        $fullModelName = $modelsNamespace . $relativeModelName;
 
         if (!class_exists($fullModelName))
             throw new \InvalidArgumentException("Model class $fullModelName does not exists");
 
-        $model = new $fullModelName;
 
-
-        $snakeFormName = $formNameParts[1];
+        $snakeFormName = array_get($formConfig,'form_type',$formNameParts[1]);
         $relativeFormName = studly_case($snakeFormName);
-        $fullFormName = $this->foorms_namespace . $relativeModelName . "\\" . $relativeFormName;
+        $fullFormName = $foormsNamespace . $relativeModelName . "\\" . $relativeFormName;
 
 
         if (!class_exists($fullFormName)) {//Example: exists App\Foorm\User\List class?
 
-            $fullFormName = $this->foorms_namespace . $relativeFormName;
+            $fullFormName = $foormsNamespace . $relativeFormName;
             if (!class_exists($fullFormName)) {//Example: exists App\Foorm\List class?
-                $fullFormName = $this->foorms_defaults_namespace . $relativeFormName;
+                $fullFormName = $foormsDefaultsNamespace . $relativeFormName;
 
                 if (!class_exists($fullFormName)) {//Example: exists Gecche\Foorm\List class?
                     throw new \InvalidArgumentException("Form class not found");
@@ -124,41 +126,50 @@ class FormManager
 
         }
 
+        $finalConfig['model'] = $snakeModelName;
+        $finalConfig['form_type'] = $snakeFormName;
+        $finalConfig['models_namespace'] = $modelsNamespace;
+        $finalConfig['foorms_namespace'] = $foormsNamespace;
+        $finalConfig['foorms_default_namespace'] = $foormsDefaultsNamespace;
+        $finalConfig['relative_form_name'] = $relativeFormName;
+        $finalConfig['relative_model_name'] = $relativeModelName;
 
-        $form = new $fullFormName; //DA FINIRE A BESTIA MA MI SEMBRA LA STRAD GIUSTA
+        $this->config = $finalConfig;
 
-
-
+        return $finalConfig;
 
     }
 
 
 
-    /**
-     * @return Array
-     */
-    public function getConfig()
-    {
-        return $this->config;
-    }
 
     /**
      * @param Array $config
      */
     public function setConfig($config)
     {
-        $this->config = array_merge($this->config, $config);
-    }
-
-    protected function buildConfig() {
-        $defaultConfig = config('foorm', []);
+        $this->config = array_merge($this->getConfig(), $config);
     }
 
 
-    public function getModelsNamespace()
-    {
-        return config('foorm.models_namespace', 'App') . "\\";
+    protected function setModel() {
+
+        $fullModelName = array_get($this->config,'models_namespace')
+            . array_get($this->config,'relative_model_name');
+
+        $id = array_get($this->params,'id');
+        if ($id) {
+            $model = $fullModelName::find($id);
+            if (!$model || !$model->getKey()) {
+                throw new \InvalidArgumentException("Model $fullModelName with id $id not found.");
+            }
+        } else {
+            $model = new $fullModelName;
+        }
+
+        $this->model = $model;
     }
+
 
     /**
      * @return array
