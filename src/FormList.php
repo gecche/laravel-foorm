@@ -36,6 +36,11 @@ class FormList
     protected $params;
 
     /**
+     * @var array
+     */
+    protected $config;
+
+    /**
      * @var string
      */
     protected $modelName;
@@ -61,24 +66,20 @@ class FormList
     protected $formData;
 
     /**
-     * @var Array
+     * @var array
      */
     protected $formAggregatesData;
 
     /**
      * @var mixed
      */
-    protected $formMetadata;
+    protected $formMetadata = [];
 
     /**
      * @var \Closure|null
      */
     protected $listBuilder;
 
-    /**
-     * @var Array
-     */
-    protected $config;
 
     /**
      * @var DBHelper
@@ -91,15 +92,14 @@ class FormList
      * @param ModelPlus $model
      * @param array $params
      */
-    public function __construct($input = [], ModelPlus $model, $params = [])
+    public function __construct(array $config, ModelPlus $model, array $input, $params = [])
     {
 
         $this->input = $input;
         $this->model = $model;
         $this->params = $params;
+        $this->config = $config;
 
-        $this->modelName = get_class($this->model);
-        $this->modelRelativeName = trim_namespace($this->getModelsNamespace(), $this->modelName);
 
         $this->dbHelper = DBHelper::helper($this->model->getConnectionName());
 
@@ -109,7 +109,7 @@ class FormList
     }
 
     /**
-     * @return Array
+     * @return array
      */
     public function getConfig()
     {
@@ -117,15 +117,11 @@ class FormList
     }
 
     /**
-     * @param Array $config
+     * @param array $config
      */
     public function setConfig($config)
     {
         $this->config = array_merge($this->config, $config);
-    }
-
-    protected function buildConfig() {
-        $defaultConfig = config('foorm', []);
     }
 
 
@@ -512,7 +508,6 @@ class FormList
         $arrayData = $this->formBuilder->toArray();
 
 
-
         return $arrayData;
     }
 
@@ -598,36 +593,98 @@ class FormList
 
     }
 
-    public function setFormMetadata()
+
+    protected function createOptions($fieldKey, $fieldValue, $defaultOptionsValues)
     {
 
+        $options = $fieldValue['options'];
 
-        $this->resultParams = $this->dbHelper->listColumnsDefault($this->model->getTable());
-
-        $this->setResultParamsAppendsDefaults();
-        $this->setResultParamsDefaults();
-
-        foreach (array_keys($this->result) as $resultField) {
-
-            if ($resultField == 'data') {
-                $data = $this->result[$resultField];
-                if (is_array($data) && !empty($data)) {
-                    $firstData = current($data);
-                    foreach (array_keys($firstData) as $resultDataField) {
-                        $this->createResultParamItem($resultDataField);
-                    }
-                }
-                continue;
-            }
-
-            $this->createResultParamItem($resultField);
+        //SE E' un array metto le options così come sono;
+        if (is_array($options)) {
+            return $options;
         }
 
+        if ($options == 'boolean') {
 
-        $fieldParamsFromModel = $this->model->getFieldParams();
-        $modelFieldsParamsFromModel = array_intersect_key($fieldParamsFromModel, $this->resultParams);
+            return [
+                array_get($fieldValue, 'bool-false-value', $defaultOptionsValues['bool-false-value'])
+                => array_get($fieldValue, 'bool-false-label', $defaultOptionsValues['bool-false-label']),
+                array_get($fieldValue, 'bool-true-value', $defaultOptionsValues['bool-true-value'])
+                => array_get($fieldValue, 'bool-true-label', $defaultOptionsValues['bool-true-label']),
+            ];
+        }
 
-        $this->resultParams = array_replace_recursive($this->resultParams, $modelFieldsParamsFromModel);
+        if ($options == 'dboptions') {
+            return $this->dbHelper->listEnumValues($fieldKey);
+        }
+
+        if (starts_with($options, 'relation:')) {
+
+            $relationValue = explode($options);
+            $relationName = $relationValue[1];
+
+            $relationColumns = array_get($relationValue, [1], 'id');
+
+            return [];
+        }
+
+        return [];
+
+    }
+
+    protected function setNullOption($fieldValue, $options, $hasNullOption, $defaultOptionsValues)
+    {
+
+        if ($hasNullOption == 'onchoice' && count($options) <= 1) {
+            return $options;
+        }
+
+        $nullOption = [$defaultOptionsValues['null-value'] =>
+            array_get($fieldValue, 'null-label', $defaultOptionsValues['null-label'])];
+
+        return $nullOption + $options;
+
+    }
+
+
+    protected function setFormMetadataFields() {
+        $fields = array_get($this->config, 'fields');
+
+
+        $defaultOptionsValues = [
+            'null-value' => $this->config['null-value'],
+            'null-label' => $this->config['null-label'],
+            'bool-false-value' => $this->config['bool-false-value'],
+            'bool-false-label' => $this->config['bool-false-label'],
+            'bool-true-value' => $this->config['bool-true-value'],
+            'bool-true-label' => $this->config['bool-true-label'],
+        ];
+        foreach ($fields as $fieldKey => $fieldValue) {
+
+            if (array_get($fieldValue, 'options')) {
+                $options = $this->createOptions($fieldKey, $fieldValue, $defaultOptionsValues);
+
+                $hasNullOption = array_get($fieldValue, 'nulloption', true);
+
+                if ($hasNullOption) {
+                    $options = $this->setNullOption($fieldValue, $options, $hasNullOption, $defaultOptionsValues);
+                }
+
+                $fieldValue['options'] = $options;
+                unset($fieldValue['nulloption']);
+            }
+
+            $fields[$fieldKey] = $fieldValue;
+
+        }
+
+        $this->formMetadata['fields'] = $fields;
+        return $fields;
+    }
+
+    protected function setFormMetadataRelations() {
+
+        $relations = [];
 
         foreach ($this->hasManies as $key => $value) {
             $modelName = $value['modelName'];
@@ -645,6 +702,11 @@ class FormList
             $this->resultParams[$key] = $value;
         }
 
+        $this->formMetadata['relations'] = $relations;
+        return $relations;
+    }
+
+    protected function setFormMetadataOrder() {
         $order_input = Input::get('order_field', false);
         if ($order_input) {
             $this->resultParams['order_field'] = $order_input;
@@ -656,6 +718,19 @@ class FormList
             $this->resultParams['order_field'] = array_get($orderColumns, 0, 'id');
             $this->resultParams['order_direction'] = array_get($orderDirections, 0, 'ASC');
         }
+
+    }
+
+    public function setFormMetadata()
+    {
+
+
+        $this->setFormMetadataFields();
+
+        $this->setFormMetadataRelations();
+
+        $this->setFormMetadataOrder();
+
 
     }
 
