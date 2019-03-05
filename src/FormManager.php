@@ -107,7 +107,7 @@ class FormManager
 
             $fullFormName = $foormsNamespace . $relativeFormName;
             if (!class_exists($fullFormName)) {//Example: exists App\Foorm\List class?
-                $fullFormName = $foormsDefaultsNamespace . $relativeFormName;
+                $fullFormName = $foormsDefaultsNamespace . 'Foorm'. $relativeFormName;
 
                 if (!class_exists($fullFormName)) {//Example: exists Gecche\Foorm\List class?
                     throw new \InvalidArgumentException("Form class not found");
@@ -190,6 +190,16 @@ class FormManager
     {
         return $this->params;
     }
+
+    /**
+     * @return mixed
+     */
+    public function getForm()
+    {
+        return $this->form;
+    }
+
+
 
 
 }

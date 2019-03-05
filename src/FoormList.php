@@ -4,7 +4,8 @@ namespace Gecche\Foorm;
 
 use Cupparis\Acl\Facades\Acl;
 use Cupparis\Ardent\Ardent;
-use Gecche\DBHelper\Contracts\DBHelper;
+
+use Gecche\DBHelper\Facades\DBHelper;
 use Gecche\Foorm\Contracts\ListBuilder;
 use Gecche\ModelPlus\ModelPlus;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Log;
 
-class FormList
+class FoormList
 {
 
     use ConstraintBuilderTrait;
@@ -76,13 +77,16 @@ class FormList
     /**
      * @var mixed
      */
-    protected $formMetadata = [];
+    protected $formMetadata = null;
 
     /**
      * @var \Closure|null
      */
     protected $listBuilder;
 
+    protected $listOrder;
+
+    protected $paginateSelect;
     /**
      * @var Builder|null
      */
@@ -110,7 +114,6 @@ class FormList
 
         $this->dbHelper = DBHelper::helper($this->model->getConnectionName());
 
-        $this->config = config('foorm.defaults', []);
 
 
     }
@@ -166,7 +169,7 @@ class FormList
      */
     public function getModelName()
     {
-        return $this->modelName;
+        return array_get($this->config,'full_model_name');
     }
 
     /**
@@ -225,15 +228,15 @@ class FormList
     public function buildRelations()
     {
 
-        $modelName = $this->modelName;
+        $modelName = $this->getModelName();
 
         $relations = $modelName::getRelationsData();
 
-        foreach ($relations as $key => $relation) {
-            if (in_array($key, $this->inactiveRelations)) {
-                unset($relations[$key]);
-            }
-        }
+//        foreach ($relations as $key => $relation) {
+//            if (in_array($key, $this->inactiveRelations)) {
+//                unset($relations[$key]);
+//            }
+//        }
 
         $this->relations = $relations;
 
@@ -488,8 +491,8 @@ class FormList
         }
 
 
-//      $this->summaryResult = $this->formbuilder;
-        $this->formbuilder = $this->formbuilder->paginate($perPage, $paginateSelect, 'page', $page);
+//      $this->summaryResult = $this->formBuilder;
+        $this->formBuilder = $this->formBuilder->paginate($perPage, $paginateSelect, 'page', $page);
 
 
         return $this->formBuilder;
@@ -626,12 +629,15 @@ class FormList
             return $this->dbHelper->listEnumValues($fieldKey);
         }
 
-        if (starts_with($options, 'relation:')) {
+        if (starts_with($options, 'belongsto:')) {
 
-            $relationValue = explode($options);
+            $relationValue = explode(':',$options);
             $relationModelName = $relationValue[1];
 
-            $options = $relationModelName::getForSelectList();
+            $fullRelationModelName = $this->getModelsNamespace().$relationModelName;
+
+            $relationModel = new $fullRelationModelName;
+            $options = $relationModel->getForSelectList();
 
             return $options;
         }
