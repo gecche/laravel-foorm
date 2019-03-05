@@ -7,6 +7,7 @@ use Cupparis\Ardent\Ardent;
 use Gecche\DBHelper\Contracts\DBHelper;
 use Gecche\Foorm\Contracts\ListBuilder;
 use Gecche\ModelPlus\ModelPlus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -57,7 +58,9 @@ class FormList
 
 
     protected $relations;
-    protected $inactiveRelations;
+
+    protected $hasManies;
+    protected $belongsTos;
 
 
     /**
@@ -80,6 +83,10 @@ class FormList
      */
     protected $listBuilder;
 
+    /**
+     * @var Builder|null
+     */
+    protected $formBuilder;
 
     /**
      * @var DBHelper
@@ -127,7 +134,7 @@ class FormList
 
     public function getModelsNamespace()
     {
-        return config('foorm.models_namespace', 'App') . "\\";
+        return array_get($this->config,'models_namespace');
     }
 
     /**
@@ -268,7 +275,7 @@ class FormList
                     continue 2;  // per dire di continuare il ciclo for e non lo switch
                     break;
             }
-            $relations[$relationName]['hasManyType'] = $relations[$relationName][0];
+            $relations[$relationName]['relationType'] = $relations[$relationName][0];
             unset($relations[$relationName][0]);
             $modelRelatedName = $relations[$relationName]['related'];
             unset($relations[$relationName][1]);
@@ -310,6 +317,7 @@ class FormList
                     continue 2;  // per dire di continuare il ciclo for e non lo switch
                     break;
             }
+            $relations[$relationName]['relationType'] = $relations[$relationName][0];
             unset($relations[$relationName][0]);
             $relations[$relationName]['modelName'] = $relations[$relationName]['related'];
             $relations[$relationName]['modelRelativeName'] = trim_namespace($this->getModelsNamespace(), $relations[$relationName]['related']);
@@ -621,11 +629,11 @@ class FormList
         if (starts_with($options, 'relation:')) {
 
             $relationValue = explode($options);
-            $relationName = $relationValue[1];
+            $relationModelName = $relationValue[1];
 
-            $relationColumns = array_get($relationValue, [1], 'id');
+            $options = $relationModelName::getForSelectList();
 
-            return [];
+            return $options;
         }
 
         return [];
@@ -639,8 +647,10 @@ class FormList
             return $options;
         }
 
+        $nullLabel = array_get($fieldValue, 'null-label', $defaultOptionsValues['null-label']);
+
         $nullOption = [$defaultOptionsValues['null-value'] =>
-            array_get($fieldValue, 'null-label', $defaultOptionsValues['null-label'])];
+            ucfirst(trans($nullLabel))];
 
         return $nullOption + $options;
 
@@ -649,6 +659,12 @@ class FormList
 
     protected function setFormMetadataFields() {
         $fields = array_get($this->config, 'fields');
+        $this->formMetadata['fields'] = $this->_setFormMetadataFields($fields);
+
+        return $fields;
+    }
+
+    protected function _setFormMetadataFields($fields = []) {
 
 
         $defaultOptionsValues = [
@@ -678,7 +694,6 @@ class FormList
 
         }
 
-        $this->formMetadata['fields'] = $fields;
         return $fields;
     }
 
@@ -686,20 +701,21 @@ class FormList
 
         $relations = [];
 
-        foreach ($this->hasManies as $key => $value) {
-            $modelName = $value['modelName'];
-            $model = new $modelName;
-            $value["fields"] = $this->dbHelper->listColumnsDefault($model->getTable());
 
-            $this->resultParams[$key] = $value;
+        foreach ($this->hasManies as $key => $relationMetadata) {
+            $relationMetadata = array_merge($relationMetadata,array_get($this->config['relations'],$key,[]));
+            $relationMetadata['fields'] = $this->_setFormMetadataFields(array_get($relationMetadata,'fields',[]));
+            $relations[$key] = $relationMetadata;
         }
 
-        foreach ($this->belongsTos as $key => $value) {
-            $modelName = $value['modelName'];
-            $options = $modelName::getForSelectList();
-            $value['options'] = $options;
-            $value['options_order'] = array_keys($options);
-            $this->resultParams[$key] = $value;
+        foreach ($this->belongsTos as $key => $relationMetadata) {
+            $relationMetadata = array_merge($relationMetadata,array_get($this->config['relations'],$key,[]));
+            $relations[$key] = $relationMetadata;
+//            $modelName = $value['modelName'];
+//            $options = $modelName::getForSelectList();
+//            $value['options'] = $options;
+//            $value['options_order'] = array_keys($options);
+//            $this->resultParams[$key] = $value;
         }
 
         $this->formMetadata['relations'] = $relations;
@@ -707,16 +723,16 @@ class FormList
     }
 
     protected function setFormMetadataOrder() {
-        $order_input = Input::get('order_field', false);
-        if ($order_input) {
-            $this->resultParams['order_field'] = $order_input;
-            $this->resultParams['order_direction'] = Input::get('order_direction', 'ASC');
+        $order_input = array_get($this->input,'order_field', false);
+        if ($order_input !== false) {
+            $this->formMetadata['order']['order_field'] = $order_input;
+            $this->formMetadata['order']['order_direction'] = Input::get('order_direction', 'ASC');
         } else {
             $order = $this->model->getDefaultOrderColumns();
             $orderColumns = array_keys($order);
             $orderDirections = array_values($order);
-            $this->resultParams['order_field'] = array_get($orderColumns, 0, 'id');
-            $this->resultParams['order_direction'] = array_get($orderDirections, 0, 'ASC');
+            $this->formMetadata['order']['order_field'] = array_get($orderColumns, 0, 'id');
+            $this->formMetadata['order']['order_direction'] = array_get($orderDirections, 0, 'ASC');
         }
 
     }
