@@ -93,6 +93,10 @@ class FoormList
     protected $formBuilder;
 
     /**
+     * @var Builder|null
+     */
+    protected $formAggregatesBuilder;
+    /**
      * @var DBHelper
      */
     protected $dbHelper;
@@ -539,6 +543,8 @@ class FoormList
 
         $this->getFormBuilder();
 
+        $this->setAggregatesBuilder();
+
         $this->paginateList();
 
         $this->finalizeData();
@@ -548,18 +554,22 @@ class FoormList
     }
 
 
-    public function getAggregatesData()
-    {
+    protected function setAggregatesBuilder() {
+        $this->formAggregatesBuilder = $this->cloneFormBuilder();
+    }
 
-        $aggregatesBuilder = $this->cloneFormBuilder();
+    public function getFormAggregatesData()
+    {
 
 
 //        count, max, min,  avg, and sum
 
-        $aggregatesArray = array_get($this->params, 'aggregates', []);
+        $aggregatesArray = array_get($this->config, 'aggregates', []);
 
 
-        $this->formAggregatesData = $this->applyAggregates($aggregatesBuilder, $aggregatesArray);
+        $this->formAggregatesData = $this->applyAggregates($this->formAggregatesBuilder, $aggregatesArray);
+
+        return $this->formAggregatesData;
 
     }
 
