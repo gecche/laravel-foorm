@@ -13,29 +13,27 @@ class FoormInsert extends Foorm
 
     use ConstraintBuilderTrait;
 
-
-
+    protected $extraDefaults = [];
 
     /**
-     * @var \Closure|null
+     * @return array
      */
-    protected $listBuilder;
-
-
-    
-
-
-
-
-
-    protected function applyFixedConstraints()
+    public function getExtraDefaults()
     {
-        $fixedConstraints = array_get($this->params, 'fixed_constraints', []);
-
-        foreach ($fixedConstraints as $fixedConstraint) {
-            $this->applyConstraint($fixedConstraint);
-        }
+        return $this->extraDefaults;
     }
+
+    /**
+     * @param array $extraDefaults
+     */
+    public function setExtraDefaults($extraDefaults)
+    {
+        $this->extraDefaults = $extraDefaults;
+    }
+
+
+
+
 
 
 
@@ -43,22 +41,12 @@ class FoormInsert extends Foorm
     {
 
         if ($finalizationFunc instanceof \Closure) {
-            $this->formData = $finalizationFunc($this->formBuilder);
-        } else {
-
-            $this->formData = $this->finalizeDataStandard();
+            $this->formData = $finalizationFunc($this->formData);
+            return $this->formData;
         }
 
         return $this->formData;
 
-    }
-
-    protected function finalizeDataStandard()
-    {
-        $arrayData = $this->formBuilder->toArray();
-
-
-        return $arrayData;
     }
 
 
@@ -75,62 +63,115 @@ class FoormInsert extends Foorm
 
         $modelData = $this->model->toArray();
 
-        $configFields = $this->getAllFieldsAndDefaultsFromConfig();
+        $configData = $this->getAllFieldsAndDefaultsFromConfig();
 
 
-        $modelDataDot = array_dot($modelData);
-        $configFieldsDot = array_dot($configFields);
+        $this->formData = $this->removeAndSetDefaultFromConfig($modelData,$configData);
+    }
 
-        $keyNotInConfig = array_diff_key($modelDataDot,$configFieldsDot);
+    protected function removeAndSetDefaultFromConfig($modelData,$configData) {
+        $keyNotInConfig = array_diff_key($modelData,$configData);
 
         foreach ($keyNotInConfig as $keyToEliminate) {
-            unset($modelDataDot[$keyToEliminate]);
+            unset($modelData[$keyToEliminate]);
         }
 
-        foreach ($configFieldsDot as $configKey => $configField) {
-            if (!array_key_exists($configKey,$modelDataDot)) {
-                $modelDataDot[$configKey] = $configFieldsDot[$configKey];
+        foreach ($configData as $configKey => $configField) {
+
+            if (!array_key_exists($configKey,$modelData)) {
+                $modelData[$configKey] = $configData[$configKey];
             }
+
+            if (is_array($configField)) {
+
+                if (!is_array($modelData[$configKey])) {
+                    $modelData[$configKey] = [];
+                }
+                $modelData[$configKey] = $this->removeAndSetDefaultFromConfig($modelData[$configKey],$configField);
+
+            }
+
+
         }
 
-        $this->formData = array_undot($modelDataDot);
+        return $modelData;
 
     }
 
+
     public function getAllFieldsAndDefaultsFromConfig() {
+
+        $extraDefaults = $this->getExtraDefaults();
 
         $modelFieldsKeys = array_keys(array_get($this->config,'fields',[]));
 
         $modelFields = [];
         foreach ($modelFieldsKeys as $fieldKey) {
-            $modelFields[$fieldKey] = array_get($this->config['fields'][$fieldKey],'default');
+            $modelFields[$fieldKey] = array_key_exists($fieldKey,$extraDefaults)
+                ? $extraDefaults[$fieldKey]
+                : array_get($this->config['fields'][$fieldKey],'default');
         }
 
         $configRelations = array_keys(array_get($this->config,'relations',[]));
 
         foreach ($configRelations as $relationKey) {
 
-            $relationFields = [];
 
-            $relationConfigFields = array_keys(array_get($this->config['relations'][$relationKey],'fields',[]));
+            $relationConfig = array_get($this->config['relations'],$relationKey,[]);
 
-            foreach ($relationConfigFields as $relationFieldKey) {
-                $relationFields[$relationFieldKey] = array_get($this->config['relations'][$relationKey]['fields'][$relationFieldKey],'default');
-            }
-
-            $modelFields[$relationKey] = $relationFields;
+            $modelFields[$relationKey] = $this->_getAllFieldsAndDefaultsFromConfig($relationConfig,array_get($extraDefaults,$relationKey,[]));
 
         }
 
         return $modelFields;
 
 
+    }
+
+    protected function _getAllFieldsAndDefaultsFromConfig($relationConfig,$extraDefaults) {
+        $modelFieldsKeys = array_keys(array_get($relationConfig,'fields',[]));
+
+        $modelFields = [];
+        foreach ($modelFieldsKeys as $fieldKey) {
+            $modelFields[$fieldKey] = array_key_exists($fieldKey,$extraDefaults)
+                ? $extraDefaults[$fieldKey]
+                : array_get($relationConfig['fields'][$fieldKey],'default');
+        }
+
+        $configRelations = array_keys(array_get($relationConfig,'relations',[]));
+
+        foreach ($configRelations as $relationKey) {
 
 
+            $subRelationConfig = array_get($relationConfig['relations'],$relationKey,[]);
+
+            $modelFields[$relationKey] = $this->_getAllFieldsAndDefaultsFromConfig($subRelationConfig,array_get($extraDefaults,$relationKey,[]));
+
+        }
+
+        return $modelFields;
 
 
     }
 
+
+    //SOLO AL LIVELLO DEL MODELLO PRINCIPALE
+    protected function setFixedConstraints()
+    {
+        $fixedConstraints = array_get($this->params, 'fixed_constraints', []);
+
+        foreach ($fixedConstraints as $fixedConstraint) {
+
+
+            $field = array_get($fixedConstraint, 'field', null);
+
+            if (!$field || !is_string($field) || !array_key_exists('value', $fixedConstraint)) {
+                continue;
+            };
+
+            $this->formData[$field] = $fixedConstraint['value'];
+        }
+    }
 
     /**
      * Generates and returns the data model
@@ -145,7 +186,9 @@ class FoormInsert extends Foorm
 
         $this->setModelData();
 
-//        $this->finalizeData();
+        $this->setFixedConstraints();
+
+        $this->finalizeData();
 
         return $this->formData;
 
@@ -161,7 +204,6 @@ class FoormInsert extends Foorm
         $this->setFormMetadataFields();
 
         $this->setFormMetadataRelations();
-
 
     }
 
