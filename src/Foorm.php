@@ -92,6 +92,7 @@ abstract class Foorm
 
         $this->dbHelper = DBHelper::helper($this->model->getConnectionName());
 
+        $this->prepareRelationsData();
 
 
     }

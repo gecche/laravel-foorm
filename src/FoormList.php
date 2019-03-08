@@ -339,8 +339,6 @@ class FoormList extends Foorm
     public function setFormBuilder()
     {
 
-        $this->prepareRelationsData();
-
         $this->generateListBuilder();
 
         $this->applySearchFilters();
