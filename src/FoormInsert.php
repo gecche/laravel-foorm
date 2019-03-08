@@ -70,7 +70,7 @@ class FoormInsert extends Foorm
     }
 
     protected function removeAndSetDefaultFromConfig($modelData,$configData) {
-        $keyNotInConfig = array_diff_key($modelData,$configData);
+        $keyNotInConfig = array_keys(array_diff_key($modelData,$configData));
 
         foreach ($keyNotInConfig as $keyToEliminate) {
             unset($modelData[$keyToEliminate]);
