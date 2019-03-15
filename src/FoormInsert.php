@@ -15,6 +15,7 @@ class FoormInsert extends Foorm
 
     protected $extraDefaults = [];
 
+    protected $inputForSave = null;
     /**
      * @return array
      */
@@ -161,7 +162,7 @@ class FoormInsert extends Foorm
 
 
     //SOLO AL LIVELLO DEL MODELLO PRINCIPALE
-    protected function setFixedConstraints()
+    protected function setFixedConstraints($data)
     {
         $fixedConstraints = array_get($this->params, 'fixed_constraints', []);
 
@@ -174,8 +175,10 @@ class FoormInsert extends Foorm
                 continue;
             };
 
-            $this->formData[$field] = $fixedConstraint['value'];
+            $data[$field] = $fixedConstraint['value'];
         }
+
+        return $data;
     }
 
     /**
@@ -191,7 +194,7 @@ class FoormInsert extends Foorm
 
         $this->setModelData();
 
-        $this->setFixedConstraints();
+        $this->formData = $this->setFixedConstraints($this->formData);
 
         $this->finalizeData();
 
@@ -211,6 +214,49 @@ class FoormInsert extends Foorm
         $this->setFormMetadataRelations();
 
     }
+
+
+
+    public function save($input = null, $validate = true)
+    {
+
+        $this->inputforSave = is_array($input) ? $input : $this->input;
+
+        $this->setFixedConstraints($this->inputForSave);
+
+
+        if ($validate) {
+            $this->isValid($this->input);
+        }
+
+        $backParams = Input::get('backParams', array());
+        $this->model->setFrontEndParams($backParams);
+
+        //Filtrare le entries delle relazioni
+
+        $inputFiltered = $this->filterInputForGuarded($this->input);
+        $this->model->fill($inputFiltered);
+
+        //QUI POTREI FARE UNA FORCE SAVE PERCHE' LA VALIDAZIONE L'HO GIA' FATTA CON IL MODELFORM
+        //COMUNUQE SE NON VOGLIO BYPASSARE LA VALIDAZIONE DEL MODELLO DEVO ALMENO DISTINGUERE TRA INSERT E UPDATE
+        if ($this->model->getKey()) {
+            $saved = $this->model->updateUniques();
+        } else {
+            $saved = $this->model->save();
+        }
+
+        if (!$saved) {
+            throw new Exception($this->model->errors());
+        }
+
+        $this->model->fresh();
+
+        $this->saveRelated($this->input);
+        $this->setResult();
+
+        return $saved;
+    }
+
 
 
 }
