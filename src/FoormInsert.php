@@ -69,7 +69,7 @@ class FoormInsert extends Foorm
         $this->formData = $this->removeAndSetDefaultFromConfig($modelData,$configData);
     }
 
-    protected function removeAndSetDefaultFromConfig($modelData,$configData) {
+    protected function removeAndSetDefaultFromConfig($modelData,$configData,$level = 1) {
         $keyNotInConfig = array_keys(array_diff_key($modelData,$configData));
 
         foreach ($keyNotInConfig as $keyToEliminate) {
@@ -79,15 +79,20 @@ class FoormInsert extends Foorm
         foreach ($configData as $configKey => $configField) {
 
             if (!array_key_exists($configKey,$modelData)) {
-                $modelData[$configKey] = $configData[$configKey];
+                if ($level == 1) {
+                    $modelData[$configKey] = $configData[$configKey];
+                } else {
+                    continue;
+                }
             }
 
             if (is_array($configField)) {
 
                 if (!is_array($modelData[$configKey])) {
-                    $modelData[$configKey] = [];
+                    continue;
+//                    $modelData[$configKey] = [];
                 }
-                $modelData[$configKey] = $this->removeAndSetDefaultFromConfig($modelData[$configKey],$configField);
+                $modelData[$configKey] = $this->removeAndSetDefaultFromConfig($modelData[$configKey],$configField,($level+1));
 
             }
 
