@@ -20,6 +20,7 @@ class FoormInsert extends Foorm
 
     protected $validator = null;
     protected $validationSettings = null; //rules, customMessages, customAttributes
+
     /**
      * @return array
      */
@@ -216,16 +217,16 @@ class FoormInsert extends Foorm
     }
 
 
-    public function isValid($input = null,$settings = null)
+    public function isValid($input = null, $settings = null)
     {
 
         $input = is_array($input) ? $input : $this->input;
 
         $finalSettings = $this->getValidationSettings($settings);
-        $rules = array_get($finalSettings,'rules',[]);
-        $customMessages = array_get($finalSettings,'customMessages',[]);
-        $customAttributes = array_get($finalSettings,'customAttributes',[]);
-        $this->validator = Validator::make($input, $rules,$customMessages,$customAttributes);
+        $rules = array_get($finalSettings, 'rules', []);
+        $customMessages = array_get($finalSettings, 'customMessages', []);
+        $customAttributes = array_get($finalSettings, 'customAttributes', []);
+        $this->validator = Validator::make($input, $rules, $customMessages, $customAttributes);
 
         if (!$this->validator->passes()) {
             $errors = $this->validator->errors()->getMessages();
@@ -250,7 +251,11 @@ class FoormInsert extends Foorm
         $this->validationSettings = $this->model->getModelValidationSettings($uniqueRules);
 
 
-        $validationHasMany = [];
+        $validationHasMany = [
+            'rules' => [],
+            'customMessages' => [],
+            'customAttributes' => [],
+        ];
         foreach ($this->hasManies as $key => $value) {
             $hasManyModelName = $value['modelName'];
 
@@ -258,7 +263,7 @@ class FoormInsert extends Foorm
 
             $hasManyValidationSettings = $hasManyModel->getModelValidationSettings();
 
-            $hasManyRules = array_get($hasManyValidationSettings,'rules',[]);
+            $hasManyRules = array_get($hasManyValidationSettings, 'rules', []);
             foreach ($hasManyRules as $hasManyRuleKey => $hasManyRuleValue) {
                 $valueRules = explode('|', $hasManyRuleValue);
 
@@ -279,10 +284,15 @@ class FoormInsert extends Foorm
 
             $hasManyValidationSettings['rules'] = $hasManyRules;
             //$this->validationRules[] =
-            $validationHasMany = array_merge($validationHasMany, $hasManyValidationSettings);
+            $validationHasMany['rules'] = array_merge($validationHasMany['rules'], $hasManyValidationSettings['rules']);
+            $validationHasMany['customMessages'] = array_merge($validationHasMany['customMessages'], $hasManyValidationSettings['customMessages']);
+            $validationHasMany['customAttributes'] = array_merge($validationHasMany['customAttributes'], $hasManyValidationSettings['customAttributes']);
+
         }
 
-        $this->validationSettings = array_merge($this->validationSettings, $validationHasMany);
+        $this->validationSettings['rules'] = array_merge($this->validationSettings['rules'], $validationHasMany['rules']);
+        $this->validationSettings['customMessages'] = array_merge($this->validationSettings['customMessages'], $validationHasMany['customMessages']);
+        $this->validationSettings['customAttributes'] = array_merge($this->validationSettings['customAttributes'], $validationHasMany['customAttributes']);
 
 
     }
@@ -310,8 +320,6 @@ class FoormInsert extends Foorm
     }
 
 
-
-
     public function getValidationRulePrefix($prefix, $remove = true, $separator = '-')
     {
 
@@ -324,10 +332,11 @@ class FoormInsert extends Foorm
     }
 
 
-    protected function setFieldsToModel($model,$configFields,$input) {
+    protected function setFieldsToModel($model, $configFields, $input)
+    {
 
         foreach (array_keys($configFields) as $fieldName) {
-            $model->$fieldName = array_get($input,$fieldName);
+            $model->$fieldName = array_get($input, $fieldName);
         }
 
     }
@@ -335,7 +344,7 @@ class FoormInsert extends Foorm
     public function save($input = null, $validate = true)
     {
 
-        $this->inputforSave = is_array($input) ? $input : $this->input;
+        $this->inputForSave = is_array($input) ? $input : $this->input;
 
         $this->setFixedConstraints($this->inputForSave);
 
@@ -344,7 +353,7 @@ class FoormInsert extends Foorm
             $this->isValid($this->inputForSave);
         }
 
-        $this->setFieldsToModel($this->model,array_get($this->config,'fields',[]),$this->inputForSave);
+        $this->setFieldsToModel($this->model, array_get($this->config, 'fields', []), $this->inputForSave);
 
 
         $saved = $this->model->save();
@@ -356,10 +365,409 @@ class FoormInsert extends Foorm
         $this->model->fresh();
 
         //DA FARE
-//        $this->saveRelated($this->input);
+        $this->saveRelated($this->inputForSave);
 //        $this->setResult();
 
         return $saved;
+    }
+
+
+    protected function saveRelated($input)
+    {
+
+        foreach ($this->belongsTos as $belongsToKey => $belongsToValue) {
+            $saveRelatedName = 'saveRelated' . studly_case($belongsToKey);
+            $saveType = array_get($belongsToValue, 'saveType', 'standard');
+            $saveTypeParams = array_get($belongsToValue, 'saveTypeParams', array());
+
+            if ($saveType == 'standard') {
+                continue;
+            }
+
+            $this->$saveRelatedName('BelongsTo', $belongsToKey, $belongsToValue, $input, $saveTypeParams);
+        }
+
+
+        foreach ($this->hasManies as $hasManyKey => $hasManyValue) {
+            $saveRelatedName = 'saveRelated' . studly_case($hasManyKey);
+            $hasManyType = $hasManyValue['hasManyType'];
+            $saveType = array_get($hasManyValue, 'saveType', false);
+            $saveTypeParams = array_get($hasManyValue, 'saveTypeParams', array());
+            if ($saveType) {
+                $hasManyType = $hasManyType . studly_case($saveType);
+            }
+            $this->$saveRelatedName($hasManyType, $hasManyKey, $hasManyValue, $input, $saveTypeParams);
+        }
+    }
+
+
+    protected function getRelationFieldsFromConfig($relation)
+    {
+        $relationsConfig = array_get($this->config, 'relations', []);
+        $relationConfig = array_get($relationsConfig, $relation, []);
+        return array_get($relationConfig, 'fields', []);
+    }
+
+    /*
+     * BelongsTo - Non Standard: add a new belongs to model while saving the main model
+     */
+    public function saveRelatedBelongsTo($belongsToKey, $belongsToValue, $input, $params = array())
+    {
+
+        $belongsToModelName = $belongsToValue['modelName'];
+        $belongsToRelationName = $belongsToValue['relationName'];
+        $belongsToModel = $this->model->$belongsToRelationName;
+
+        if (!$belongsToModel)
+            $belongsToModel = new $belongsToModelName;
+
+        $belongsToInputs = preg_grep_keys('/^' . $belongsToRelationName . '-/', $input);
+        $belongsToInputs = trim_keys($belongsToRelationName . '-', $belongsToInputs);
+
+        if ($belongsToValue['saveType'] == 'morphed') {
+            $morph_type = $belongsToRelationName . 'able_type';
+            $morph_id = $belongsToRelationName . 'able_id';
+            $belongsToInputs[$morph_id] = $this->model->getKey();
+            $belongsToInputs[$morph_type] = $this->modelName;
+        }
+
+        $this->setFieldsToModel($belongsToModel, $this->getRelationFieldsFromConfig($belongsToKey), $this->inputForSave);
+
+        $belongsToModel->save();
+
+        $this->model->$belongsToKey = $belongsToModel->getKey();
+        $this->model->save();
+    }
+
+    /*
+     * BelongsToMany - SaveTYPE: ADD
+     */
+    public function saveRelatedBelongsToManyAdd($hasManyKey, $hasManyValue, $input, $params = array())
+    {
+        $hasManyInputs = preg_grep_keys('/^' . $hasManyKey . '-/', $input);
+        $hasManyInputs = trim_keys($hasManyKey . '-', $hasManyInputs);
+
+        $hasManyModelName = $hasManyValue['modelName'];
+        $hasManyModel = new $hasManyModelName();
+        $pkName = $hasManyModel->getKeyName();
+
+        $standardActions = [
+            'update' => true,
+            'remove' => true,
+        ];
+        $actionsToDo = array_get($params, 'actions', []);
+        $actionsToDo = array_merge($standardActions, $actionsToDo);
+
+        $statusKey = array_get($this->config['relations'][$hasManyKey],'status-key','status');
+
+        foreach (array_get($hasManyInputs, $pkName, []) as $i => $pk) {
+
+            $status = $hasManyInputs[$statusKey][$i];
+
+            $inputArray = [];
+            foreach ($this->getRelationFieldsFromConfig($hasManyKey) as $key) {
+                $inputArray[$key] = $hasManyInputs[$key][$i];
+            }
+
+            $pivotFields = $this->model->getPivotKeys($hasManyKey);
+            $pivotValues = [];
+
+            foreach ($pivotFields as $pivotField) {
+                $pivotValues[$pivotField] = array_get($inputArray, $pivotField, null);
+            }
+
+            if (array_get($hasManyValue, 'orderKey')) {
+                $pivotValues[$hasManyValue['orderKey']] = $i;
+            }
+
+
+            switch ($status) {
+                case 'old':
+                    $hasManyModel = $hasManyModelName::find($pk);
+                    $this->model->$hasManyKey()->detach($hasManyModel->getKey());
+                    $this->model->$hasManyKey()->attach($hasManyModel->getKey(), $pivotValues);
+                    break;
+                case 'new':
+                    $hasManyModel = $hasManyModelName::create($inputArray);
+                    $this->model->$hasManyKey()->attach($hasManyModel->getKey(), $pivotValues);
+                    break;
+                case 'updated':
+                    $hasManyModel = $hasManyModelName::find($pk);
+                    if ($actionsToDo['update']) {
+                        $hasManyModel->update($inputArray);
+                    }
+                    $this->model->$hasManyKey()->detach($hasManyModel->getKey());
+                    $this->model->$hasManyKey()->attach($hasManyModel->getKey(), $pivotValues);
+                    break;
+                case 'deleted':
+                    if ($actionsToDo['remove']) {
+                        $hasManyModel = $hasManyModelName::destroy($pk);
+                    } else {
+                        $hasManyModel = $hasManyModelName::find($pk);
+                        $this->model->$hasManyKey()->detach($hasManyModel->getKey());
+                    }
+                    break;
+                default:
+                    throw new \Exception("Invalid status " . $status);
+                    break;
+            }
+
+        }
+        $this->model->load($hasManyKey);
+    }
+
+    public function saveRelatedBelongsToManyStandardWithSave($hasManyKey, $hasManyValue, $input, $params = array())
+    {
+        $hasManyInputs = preg_grep_keys('/^' . $hasManyKey . '-/', $input);
+        $hasManyInputs = trim_keys($hasManyKey . '-', $hasManyInputs);
+
+        $hasManyModelName = $hasManyValue['modelName'];
+        $hasManyModel = new $hasManyModelName();
+        $pkName = $hasManyModel->getKeyName();
+
+        $pivotModelName = $this->getModelsNamespace() . $hasManyValue['pivotModelName'];
+
+        $this->model->$hasManyKey()->sync(array());
+
+        $statusKey = array_get($this->config['relations'][$hasManyKey],'status-key','status');
+        foreach (array_get($hasManyInputs, $pkName, []) as $i => $pk) {
+
+            $status = $hasManyInputs[$statusKey][$i];
+
+            $inputArray = [];
+            foreach ($this->getRelationFieldsFromConfig($hasManyKey) as $key) {
+                $inputArray[$key] = $hasManyInputs[$key][$i];
+            }
+
+            $pivotFields = $this->model->getPivotKeys($hasManyKey);
+            $pivotValues = array();
+
+            foreach ($pivotFields as $pivotField) {
+                $pivotValues[$pivotField] = array_get($inputArray, $pivotField, null);
+            }
+
+            if (array_get($hasManyValue, 'orderKey', false)) {
+                $pivotValues[$hasManyValue['orderKey']] = $i;
+            }
+
+
+            switch ($status) {
+                case 'old':
+                case 'new':
+                case 'updated':
+                case 'deleted':
+                    $this->model->$hasManyKey()->attach($pk, $pivotValues);
+                    $pivotModelName::orderBy('id', 'DESC')->first()->save();
+                    break;
+                default:
+                    throw new \Exception("Invalid status " . $status);
+                    break;
+            }
+        }
+        $this->model->load($hasManyKey);
+    }
+
+    public function saveRelatedBelongsToManyStandard($hasManyKey, $hasManyValue, $input, $params = array())
+    {
+        $hasManyInputs = preg_grep_keys('/^' . $hasManyKey . '-/', $input);
+        $hasManyInputs = trim_keys($hasManyKey . '-', $hasManyInputs);
+
+        $hasManyModelName = $hasManyValue['modelName'];
+        $hasManyModel = new $hasManyModelName();
+        $pkName = $hasManyModel->getKeyName();
+
+        $this->model->$hasManyKey()->sync(array());
+
+        $orderKey = array_get($hasManyValue, 'orderKey');
+
+
+        foreach (array_get($hasManyInputs, $pkName, []) as $i => $pk) {
+
+            $inputArray = [];
+            foreach ($this->getRelationFieldsFromConfig($hasManyKey) as $key) {
+                $inputArray[$key] = $hasManyInputs[$key][$i];
+            }
+
+            $pivotFields = $this->model->getPivotKeys($hasManyKey);
+            $pivotValues = [];
+
+
+            foreach ($pivotFields as $pivotField) {
+
+                if ($pivotField == $orderKey) {
+                    $pivotValues[$pivotField] = $i;
+                    continue;
+                }
+
+                $pivotValues[$pivotField] = array_get($inputArray, $pivotField, null);
+
+            }
+            $this->model->$hasManyKey()->attach($pk, $pivotValues);
+
+        }
+
+        $this->model->load($hasManyKey);
+
+    }
+
+    public function saveRelatedHasManyStandard($hasManyKey, $hasManyValue, $input, $params = array())
+    {
+        $hasManyInputs = preg_grep_keys('/^' . $hasManyKey . '-/', $input);
+        $hasManyInputs = trim_keys($hasManyKey . '-', $hasManyInputs);
+
+        $hasManyModelName = $hasManyValue['modelName'];
+        $hasManyModel = new $hasManyModelName();
+        $pkName = $hasManyModel->getKeyName();
+
+        $statusKey = array_get($this->config['relations'][$hasManyKey],'status-key','status');
+
+        foreach (array_get($hasManyInputs, $pkName, []) as $i => $pk) {
+
+            $status = $hasManyInputs[$statusKey][$i];
+
+            $inputArray = [];
+            foreach ($this->getRelationFieldsFromConfig($hasManyKey) as $key) {
+                $inputArray[$key] = $hasManyInputs[$key][$i];
+            }
+
+            if (array_get($hasManyValue, 'orderKey')) {
+                $pivotValues[$hasManyValue['orderKey']] = $i;
+            }
+            unset($inputArray[$statusKey]);
+
+            //SALVARE
+            switch ($status) {
+                case 'new':
+                    $hasManyModel = new $hasManyModelName($inputArray);
+                    $this->model->$hasManyKey()->save($hasManyModel);
+                    break;
+                case 'old':
+                    $hasManyModel = $hasManyModelName::find($inputArray['id']);
+                    $hasManyModel->update($inputArray);
+                    break;
+                case 'updated':
+                    $hasManyModel = $hasManyModelName::find($inputArray['id']);
+                    $hasManyModel->update($inputArray);
+                    break;
+                case 'deleted':
+                    $hasManyModel = $hasManyModelName::destroy($inputArray['id']);
+                    break;
+                default:
+                    throw new \Exception("Invalid status " . $status);
+                    break;
+            }
+
+        }
+        $this->model->load($hasManyKey);
+    }
+
+    public function saveRelatedHasManyAssociation($hasManyKey, $hasManyValue, $input, $params = array())
+    {
+        $hasManyInputs = preg_grep_keys('/^' . $hasManyKey . '-/', $input);
+        $hasManyInputs = trim_keys($hasManyKey . '-', $hasManyInputs);
+
+        $hasManyModelName = $hasManyValue['modelName'];
+        $hasManyModel = new $hasManyModelName();
+        $pkName = $hasManyModel->getKeyName();
+
+        $modelField = strtolower(snake_case($this->modelRelativeName)) . '_id';
+
+
+        foreach ($this->model->$hasManyKey as $hasManyModel) {
+            $hasManyModel->$modelField = null;
+            $hasManyModel->save();
+        }
+
+        foreach (array_get($hasManyInputs, 'status', array()) as $i => $status) {
+
+            $inputArray = array();
+            foreach (array_keys($hasManyInputs) as $key) {
+                $inputArray[$key] = $hasManyInputs[$key][$i];
+            }
+            //unset($inputArray['status']);
+            //$modelField = strtolower(snake_case($this->modelName)) . '_id';
+            //$inputArray[$modelField] = $this->model->getKey();
+
+            //SALVARE
+            switch ($status) {
+                case 'new':
+                case 'old':
+                case 'deleted':
+                    $hasManyModel = $hasManyModelName::find($inputArray['id']);
+                    $hasManyModel->$modelField = $this->model->getKey();
+                    $hasManyModel->save();
+                    break;
+                default:
+                    throw new Exception("Invalid status " . $status);
+                    break;
+            }
+        }
+    }
+
+    public function saveRelatedHasManyMorph($hasManyKey, $hasManyValue, $input, $params = array())
+    {
+        $hasManyInputs = preg_grep_keys('/^' . $hasManyKey . '-/', $input);
+        $hasManyInputs = trim_keys($hasManyKey . '-', $hasManyInputs);
+        $hasManyModelName = $hasManyValue['modelName'];
+        $modelField = strtolower(snake_case($this->modelRelativeName)) . '_id';
+
+
+        foreach ($this->model->$hasManyKey as $hasManyModel) {
+            $hasManyModel->delete();
+        }
+
+        $hasManyModel = new $hasManyModelName;
+
+        $hasManyAttributes = array_keys($hasManyModel->getDefaultFromDB());
+
+        $morphIdAttribute = "";
+        $morphTypeAttribute = "";
+        $ordine = false;
+        foreach ($hasManyAttributes as $hasManyAttribute) {
+            if ($hasManyAttribute == 'ordine') {
+                $ordine = true;
+                continue;
+            }
+            if (ends_with($hasManyAttribute, "able_type")) {
+                $morphTypeAttribute = $hasManyAttribute;
+            }
+            if (ends_with($hasManyAttribute, "able_id")) {
+                $morphIdAttribute = $hasManyAttribute;
+            }
+        }
+        foreach (array_get($hasManyInputs, 'status', array()) as $i => $status) {
+
+            $inputArray = array();
+            foreach (array_keys($hasManyInputs) as $key) {
+                $inputArray[$key] = $hasManyInputs[$key][$i];
+            }
+
+            if ($ordine)
+                $inputArray['ordine'] = $i;
+
+            $inputArray[$morphTypeAttribute] = $inputArray['morph_type'];
+            unset($inputArray['morph_type']);
+            $inputArray[$morphIdAttribute] = $inputArray['morph_id'];
+            unset($inputArray['morph_id']);
+            unset($inputArray['id']);
+
+            $inputArray[$modelField] = $this->model->getKey();
+
+            switch ($status) {
+                case 'old':
+                case 'new':
+                case 'updated':
+                case 'deleted':
+                    $hasManyModel = $hasManyModelName::create($inputArray);
+                    $hasManyModel->save();
+
+
+                    break;
+                default:
+                    throw new Exception("Invalid status " . $status);
+                    break;
+            }
+        }
     }
 
 
