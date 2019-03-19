@@ -7,6 +7,7 @@ use Gecche\DBHelper\Facades\DBHelper;
 use Gecche\ModelPlus\ModelPlus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Input;
+use Illuminate\Support\Facades\Validator;
 
 class FoormInsert extends Foorm
 {
@@ -16,6 +17,9 @@ class FoormInsert extends Foorm
     protected $extraDefaults = [];
 
     protected $inputForSave = null;
+
+    protected $validator = null;
+    protected $validationSettings = null; //rules, customMessages, customAttributes
     /**
      * @return array
      */
@@ -31,11 +35,6 @@ class FoormInsert extends Foorm
     {
         $this->extraDefaults = $extraDefaults;
     }
-
-
-
-
-
 
 
     public function finalizeData($finalizationFunc = null)
@@ -67,11 +66,12 @@ class FoormInsert extends Foorm
         $configData = $this->getAllFieldsAndDefaultsFromConfig();
 
 
-        $this->formData = $this->removeAndSetDefaultFromConfig($modelData,$configData);
+        $this->formData = $this->removeAndSetDefaultFromConfig($modelData, $configData);
     }
 
-    protected function removeAndSetDefaultFromConfig($modelData,$configData,$level = 1) {
-        $keyNotInConfig = array_keys(array_diff_key($modelData,$configData));
+    protected function removeAndSetDefaultFromConfig($modelData, $configData, $level = 1)
+    {
+        $keyNotInConfig = array_keys(array_diff_key($modelData, $configData));
 
         foreach ($keyNotInConfig as $keyToEliminate) {
             unset($modelData[$keyToEliminate]);
@@ -79,7 +79,7 @@ class FoormInsert extends Foorm
 
         foreach ($configData as $configKey => $configField) {
 
-            if (!array_key_exists($configKey,$modelData)) {
+            if (!array_key_exists($configKey, $modelData)) {
                 if ($level == 1) {
                     $modelData[$configKey] = $configData[$configKey];
                 } else {
@@ -93,7 +93,7 @@ class FoormInsert extends Foorm
                     continue;
 //                    $modelData[$configKey] = [];
                 }
-                $modelData[$configKey] = $this->removeAndSetDefaultFromConfig($modelData[$configKey],$configField,($level+1));
+                $modelData[$configKey] = $this->removeAndSetDefaultFromConfig($modelData[$configKey], $configField, ($level + 1));
 
             }
 
@@ -105,27 +105,28 @@ class FoormInsert extends Foorm
     }
 
 
-    public function getAllFieldsAndDefaultsFromConfig() {
+    public function getAllFieldsAndDefaultsFromConfig()
+    {
 
         $extraDefaults = $this->getExtraDefaults();
 
-        $modelFieldsKeys = array_keys(array_get($this->config,'fields',[]));
+        $modelFieldsKeys = array_keys(array_get($this->config, 'fields', []));
 
         $modelFields = [];
         foreach ($modelFieldsKeys as $fieldKey) {
-            $modelFields[$fieldKey] = array_key_exists($fieldKey,$extraDefaults)
+            $modelFields[$fieldKey] = array_key_exists($fieldKey, $extraDefaults)
                 ? $extraDefaults[$fieldKey]
-                : array_get($this->config['fields'][$fieldKey],'default');
+                : array_get($this->config['fields'][$fieldKey], 'default');
         }
 
-        $configRelations = array_keys(array_get($this->config,'relations',[]));
+        $configRelations = array_keys(array_get($this->config, 'relations', []));
 
         foreach ($configRelations as $relationKey) {
 
 
-            $relationConfig = array_get($this->config['relations'],$relationKey,[]);
+            $relationConfig = array_get($this->config['relations'], $relationKey, []);
 
-            $modelFields[$relationKey] = $this->_getAllFieldsAndDefaultsFromConfig($relationConfig,array_get($extraDefaults,$relationKey,[]));
+            $modelFields[$relationKey] = $this->_getAllFieldsAndDefaultsFromConfig($relationConfig, array_get($extraDefaults, $relationKey, []));
 
         }
 
@@ -134,24 +135,25 @@ class FoormInsert extends Foorm
 
     }
 
-    protected function _getAllFieldsAndDefaultsFromConfig($relationConfig,$extraDefaults) {
-        $modelFieldsKeys = array_keys(array_get($relationConfig,'fields',[]));
+    protected function _getAllFieldsAndDefaultsFromConfig($relationConfig, $extraDefaults)
+    {
+        $modelFieldsKeys = array_keys(array_get($relationConfig, 'fields', []));
 
         $modelFields = [];
         foreach ($modelFieldsKeys as $fieldKey) {
-            $modelFields[$fieldKey] = array_key_exists($fieldKey,$extraDefaults)
+            $modelFields[$fieldKey] = array_key_exists($fieldKey, $extraDefaults)
                 ? $extraDefaults[$fieldKey]
-                : array_get($relationConfig['fields'][$fieldKey],'default');
+                : array_get($relationConfig['fields'][$fieldKey], 'default');
         }
 
-        $configRelations = array_keys(array_get($relationConfig,'relations',[]));
+        $configRelations = array_keys(array_get($relationConfig, 'relations', []));
 
         foreach ($configRelations as $relationKey) {
 
 
-            $subRelationConfig = array_get($relationConfig['relations'],$relationKey,[]);
+            $subRelationConfig = array_get($relationConfig['relations'], $relationKey, []);
 
-            $modelFields[$relationKey] = $this->_getAllFieldsAndDefaultsFromConfig($subRelationConfig,array_get($extraDefaults,$relationKey,[]));
+            $modelFields[$relationKey] = $this->_getAllFieldsAndDefaultsFromConfig($subRelationConfig, array_get($extraDefaults, $relationKey, []));
 
         }
 
@@ -203,8 +205,6 @@ class FoormInsert extends Foorm
     }
 
 
-
-
     public function setFormMetadata()
     {
 
@@ -216,6 +216,121 @@ class FoormInsert extends Foorm
     }
 
 
+    public function isValid($input = null,$settings = null)
+    {
+
+        $input = is_array($input) ? $input : $this->input;
+
+        $finalSettings = $this->getValidationSettings($settings);
+        $rules = array_get($finalSettings,'rules',[]);
+        $customMessages = array_get($finalSettings,'customMessages',[]);
+        $customAttributes = array_get($finalSettings,'customAttributes',[]);
+        $this->validator = Validator::make($input, $rules,$customMessages,$customAttributes);
+
+        if (!$this->validator->passes()) {
+            $errors = $this->validator->errors()->getMessages();
+            $errors = array_flatten($errors);
+            throw new \Exception(json_encode($errors));
+        }
+
+        return true;
+    }
+
+
+    public function getValidationSettings($rules)
+    {
+        $this->setValidationSettings($rules);
+        return $this->validationSettings;
+    }
+
+    protected function buildValidationSettings()
+    {
+
+        $uniqueRules = $this->model->getKey() ? 1 : 0;
+        $this->validationSettings = $this->model->getModelValidationSettings($uniqueRules);
+
+
+        $validationHasMany = [];
+        foreach ($this->hasManies as $key => $value) {
+            $hasManyModelName = $value['modelName'];
+
+            $hasManyModel = new $hasManyModelName();
+
+            $hasManyValidationSettings = $hasManyModel->getModelValidationSettings();
+
+            $hasManyRules = array_get($hasManyValidationSettings,'rules',[]);
+            foreach ($hasManyRules as $hasManyRuleKey => $hasManyRuleValue) {
+                $valueRules = explode('|', $hasManyRuleValue);
+
+                //TODO: per ora le regole che sono già array le elvo perché troppo icnasinato e probabilmente sono casi stralimite.
+                //$nestedLevelRules = array();
+                foreach ($valueRules as $keyRule => $rule) {
+                    if (substr($rule, -5) === 'Array') {
+                        //$nestedLevelRules[$keyRule] = $rule;
+                        //Array nested per il momento non supportati! :) e quindi eliminati!!!
+                        unset($valueRules[$keyRule]);
+                        continue;
+                    }
+                    $valueRules[$keyRule] = $rule . 'Array';
+                }
+                $hasManyRules[$hasManyRuleKey] = implode('|', $valueRules);
+            }
+            $hasManyRules = array_key_append($hasManyRules, $key . '-', false);
+
+            $hasManyValidationSettings['rules'] = $hasManyRules;
+            //$this->validationRules[] =
+            $validationHasMany = array_merge($validationHasMany, $hasManyValidationSettings);
+        }
+
+        $this->validationSettings = array_merge($this->validationSettings, $validationHasMany);
+
+
+    }
+
+
+    public function setValidationSettings($rules = null)
+    {
+
+        if (is_array($rules)) {
+            $this->validationSettings = $rules;
+            return;
+        }
+
+        if (is_null($rules)) {
+            if (is_null($this->validationSettings)) {
+                $this->buildValidationSettings();
+            }
+            return;
+        }
+
+
+        throw new \InvalidArgumentException("Rules should be an array or null");
+
+
+    }
+
+
+
+
+    public function getValidationRulePrefix($prefix, $remove = true, $separator = '-')
+    {
+
+        $full_prefix = $prefix . $separator;
+        $rules = preg_grep_keys('/^' . $full_prefix . '/', $this->validationSettings);
+        if ($remove) {
+            $rules = trim_keys($full_prefix, $rules);
+        }
+        return $rules;
+    }
+
+
+    protected function setFieldsToModel($model,$configFields,$input) {
+
+        foreach (array_keys($configFields) as $fieldName) {
+            $model->$fieldName = array_get($input,$fieldName);
+        }
+
+    }
 
     public function save($input = null, $validate = true)
     {
@@ -226,37 +341,26 @@ class FoormInsert extends Foorm
 
 
         if ($validate) {
-            $this->isValid($this->input);
+            $this->isValid($this->inputForSave);
         }
 
-        $backParams = Input::get('backParams', array());
-        $this->model->setFrontEndParams($backParams);
+        $this->setFieldsToModel($this->model,array_get($this->config,'fields',[]),$this->inputForSave);
 
-        //Filtrare le entries delle relazioni
 
-        $inputFiltered = $this->filterInputForGuarded($this->input);
-        $this->model->fill($inputFiltered);
-
-        //QUI POTREI FARE UNA FORCE SAVE PERCHE' LA VALIDAZIONE L'HO GIA' FATTA CON IL MODELFORM
-        //COMUNUQE SE NON VOGLIO BYPASSARE LA VALIDAZIONE DEL MODELLO DEVO ALMENO DISTINGUERE TRA INSERT E UPDATE
-        if ($this->model->getKey()) {
-            $saved = $this->model->updateUniques();
-        } else {
-            $saved = $this->model->save();
-        }
+        $saved = $this->model->save();
 
         if (!$saved) {
-            throw new Exception($this->model->errors());
+            throw new \Exception($this->model->errors());
         }
 
         $this->model->fresh();
 
-        $this->saveRelated($this->input);
-        $this->setResult();
+        //DA FARE
+//        $this->saveRelated($this->input);
+//        $this->setResult();
 
         return $saved;
     }
-
 
 
 }
