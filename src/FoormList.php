@@ -112,6 +112,7 @@ class FoormList extends Foorm
 
         $value = $constraintArray['value'];
 
+        $relation = null;
         $isRelation = false;
         $fieldExploded = explode('.', $field);
         if (count($fieldExploded) > 1) {
