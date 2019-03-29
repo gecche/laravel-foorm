@@ -261,7 +261,7 @@ abstract class Foorm
             $modelRelatedName = $relationFromModel['related'];
             $relationConfig['modelName'] = $modelRelatedName;
             $relationConfig['modelRelativeName'] = trim_namespace($this->getModelsNamespace(), $modelRelatedName);
-            $relationConfig['relationName'] = snake_case($relationConfig['modelRelativeName']);
+            $relationConfig['relationName'] = $relationName;
 
 
             $relationConfig = array_merge($relationConfig,$configRelationMetadata);
@@ -366,10 +366,25 @@ abstract class Foorm
             $this->setFormMetadata();
         }
 
-        return $this->formMetadata;
+        $metadata = $this->formMetadata;
+        $metadata = $this->cleanMetadata($metadata);
+        return $metadata;
 
     }
 
+    public function cleanMetadata($metadata) {
+
+        foreach (array_get($metadata,'relations',[]) as $key => $relation) {
+
+            $relation['modelName'] = $relation['modelRelativeName'];
+            unset($relation['modelRelativeName']);
+            $metadata['relations'][$key] = $relation;
+
+        }
+
+        return $metadata;
+
+    }
 
     protected function createOptions($fieldKey, $fieldValue, $defaultOptionsValues)
     {
