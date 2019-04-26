@@ -29,6 +29,8 @@ class FormManager
 
     protected $params;
 
+    protected $inputManipulationFunction;
+
 
     /**
      * FormList constructor.
@@ -44,7 +46,6 @@ class FormManager
         $this->params = $params;
         $this->getConfig();
         $this->setModel();
-        $this->setForm();
 
 
     }
@@ -165,7 +166,7 @@ class FormManager
     protected function setForm() {
 
 
-        $input = $this->request->input();
+        $input = $this->setInputForForm($this->request->input());
 
         $fullFormName = array_get($this->config,'full_form_name');
 
@@ -173,6 +174,38 @@ class FormManager
 
     }
 
+
+    public function setInputManipulationFunction(\Closure $closure) {
+        $this->inputManipulationFunction = $closure;
+    }
+
+    protected function setInputForForm($input) {
+
+
+        $inputManipulationFunction = $this->inputManipulationFunction;
+
+        if ($inputManipulationFunction instanceof \Closure) {
+            return $inputManipulationFunction($input);
+        }
+
+
+        switch ($this->config['form_type']) {
+
+            case 'list':
+                $input['pagination'] = [
+                    'page' => array_get($input,'page'),
+                    'per_page' => array_get($input,'per_page'),
+                ];
+                unset($input['page']);
+                unset($input['per_page']);
+                return $input;
+            default:
+                return $input;
+
+        }
+
+
+    }
 
 
     /**
@@ -196,6 +229,9 @@ class FormManager
      */
     public function getForm()
     {
+        if (!$this->form) {
+            $this->setForm();
+        }
         return $this->form;
     }
 
