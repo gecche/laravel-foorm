@@ -12,7 +12,7 @@
     "require": {
         "laravel/framework": "5.5.*",
         "gecche/laravel-dbhelper": "v1.1.x-dev",
-        "gecche/laravel-modelplus": "v1.1.x-dev"
+        "gecche/laravel-breeze": "v1.1.x-dev"
     },
     "autoload": {
         "psr-4": {

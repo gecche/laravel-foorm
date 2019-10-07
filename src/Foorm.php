@@ -7,7 +7,7 @@ use Cupparis\Ardent\Ardent;
 
 use Gecche\DBHelper\Facades\DBHelper;
 use Gecche\Foorm\Contracts\ListBuilder;
-use Gecche\ModelPlus\ModelPlus;
+use Gecche\Breeze\Breeze;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
@@ -24,7 +24,7 @@ abstract class Foorm
     protected $input;
 
     /**
-     * @var ModelPlus
+     * @var Breeze
      */
     protected $model;
 
@@ -78,10 +78,10 @@ abstract class Foorm
     /**
      * FormList constructor.
      * @param array $input
-     * @param ModelPlus $model
+     * @param Breeze $model
      * @param array $params
      */
-    public function __construct(array $config, ModelPlus $model, array $input, $params = [])
+    public function __construct(array $config, Breeze $model, array $input, $params = [])
     {
 
         $this->input = $input;
@@ -128,7 +128,7 @@ abstract class Foorm
     }
 
     /**
-     * @return ModelPlus
+     * @return Breeze
      */
     public function getModel()
     {
@@ -186,7 +186,7 @@ abstract class Foorm
 
     /**
      * Costruisce l'array delle relazioni del modello principale del form.
-     * Si basa sull'array relationsData del modelplus, esclude le relazioni dichiarate inattive
+     * Si basa sull'array relationsData del breeze, esclude le relazioni dichiarate inattive
      * da $inactiveRelations
      *
      */
@@ -241,15 +241,15 @@ abstract class Foorm
             $relationConfig['max_items'] = 0;
             $relationConfig['min_items'] = 0;
             switch ($relationFromModel[0]) {
-                case ModelPlus::BELONGS_TO_MANY:
+                case Breeze::BELONGS_TO_MANY:
 
                     break;
-                case ModelPlus::MORPH_MANY:
+                case Breeze::MORPH_MANY:
 
                     break;
-                case ModelPlus::HAS_MANY:
+                case Breeze::HAS_MANY:
                     break;
-                case ModelPlus::HAS_ONE:
+                case Breeze::HAS_ONE:
                     $relationConfig['max_items'] = 1;
                     break;
                 default:
@@ -305,7 +305,7 @@ abstract class Foorm
             $relationConfig = [];
 
             switch ($relationFromModel[0]) {
-                case ModelPlus::BELONGS_TO:
+                case Breeze::BELONGS_TO:
 //                    $foreignKey = array_get($relations[$relationName], 'foreignKey', snake_case($relationName) . '_id');
                     $relationConfig['relationName'] = $relationName;
                     break;

@@ -3,7 +3,7 @@
 namespace Gecche\Foorm;
 
 use Carbon\Carbon;
-use Gecche\ModelPlus\ModelPlus;
+use Gecche\Breeze\Breeze;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Lang;

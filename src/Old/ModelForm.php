@@ -2,7 +2,7 @@
 
 namespace Gecche\Foorm\Old;
 
-use Gecche\ModelPlus\ModelPlus;
+use Gecche\Breeze\Breeze;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Config;
@@ -52,7 +52,7 @@ class ModelForm extends Form
         ]
     ];
 
-    public function __construct(ModelPlus $model, $permissionPrefix = null, $params = array())
+    public function __construct(Breeze $model, $permissionPrefix = null, $params = array())
     {
 
         parent::__construct($params);

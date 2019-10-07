@@ -10,7 +10,7 @@ namespace Gecche\Foorm\FormList\ListBuilder;
 
 
 use Gecche\Foorm\Contracts\ListBuilder;
-use Gecche\ModelPlus\ModelPlus;
+use Gecche\Breeze\Breeze;
 use Illuminate\Database\Eloquent\Builder;
 
 class StandardListBuilder implements ListBuilder
@@ -23,7 +23,7 @@ class StandardListBuilder implements ListBuilder
     protected $builder;
 
 
-    public function createBuilder(ModelPlus $model)
+    public function createBuilder(Breeze $model)
     {
         $modelClass = get_class($model);
         $this->builder = $modelClass::query();

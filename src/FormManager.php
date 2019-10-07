@@ -2,7 +2,7 @@
 
 namespace Gecche\Foorm;
 
-use Gecche\ModelPlus\ModelPlus;
+use Gecche\Breeze\Breeze;
 use Illuminate\Http\Request;
 
 class FormManager
@@ -35,7 +35,7 @@ class FormManager
     /**
      * FormList constructor.
      * @param array $input
-     * @param ModelPlus $model
+     * @param Breeze $model
      * @param array $params
      */
     public function __construct($formName,Request $request,$params = [])
@@ -209,7 +209,7 @@ class FormManager
 
 
     /**
-     * @return ModelPlus
+     * @return Breeze
      */
     public function getModel()
     {

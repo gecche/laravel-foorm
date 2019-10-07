@@ -1,6 +1,6 @@
 <?php namespace Gecche\Foorm\Contracts;
 
-use Gecche\ModelPlus\ModelPlus;
+use Gecche\Breeze\Breeze;
 use Illuminate\Database\Eloquent\Builder;
 
 interface ListBuilder {
@@ -11,7 +11,7 @@ interface ListBuilder {
      *
      * @return Builder
      */
-    public function createBuilder(ModelPlus $model);
+    public function createBuilder(Breeze $model);
 
     /**
      * Apply constraints passed in to the form, if any
