@@ -6,7 +6,9 @@ namespace Gecche\Foorm;
 use Gecche\DBHelper\Facades\DBHelper;
 use Gecche\Breeze\Breeze;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Input;
+use Illuminate\Support\Facades\Log;
 
 class FoormList extends Foorm
 {
@@ -232,11 +234,23 @@ class FoormList extends Foorm
             ? $this->paginateSelect
             : [$this->model->getTable() . ".*"];
 
+        $configFields = array_keys(Arr::get($this->config,'fields',[]));
+
+        /*
+         * QUESTO NON SO BENE COME FUNZIONI SULLE RELAZIONI
+         */
+//        $prefixedConfigFields = $this->array_key_append($configFields, $this->model->getTable() . ".", false);
+//
+//        $paginateSelect = is_array($this->paginateSelect)
+//            ? $this->paginateSelect
+//            : $prefixedConfigFields;
+
         if ($perPage < 0) {
             //No pagination: set a fixed big value in order to have the same output structure
             $perPage = array_get($this->config, 'no_paginate_value', 1000000);
         }
 
+        Log::info("QUERYLIST::: ".$this->formBuilder->toSql());
 
 //      $this->summaryResult = $this->formBuilder;
         $this->formBuilder = $this->formBuilder->paginate($perPage, $paginateSelect, 'page', $page);

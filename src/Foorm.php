@@ -514,4 +514,22 @@ abstract class Foorm
     }
 
 
+    /**
+     * Append or prepend a string to each key of an array.
+     *
+     * @param  array $array
+     * @param  string $prefix
+     * @param  boolean $append (append or prepend the prefix)
+     * @return string
+     */
+    protected function array_key_append($array, $prefix, $append = true) {
+        $new_keys = array();
+        foreach (array_keys($array) as $key) {
+            if ($append)
+                $new_keys[] = $key . $prefix;
+            else
+                $new_keys[] = $prefix . $key;
+        }
+        return array_combine($new_keys, array_values($array));
+    }
 }
