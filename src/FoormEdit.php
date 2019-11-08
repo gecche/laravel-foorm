@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Validator;
 
-class FoormInsert extends FoormDetail
+class FoormEdit extends FoormDetail
 {
 
 

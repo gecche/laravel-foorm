@@ -4,6 +4,7 @@ namespace Gecche\Foorm;
 
 use Gecche\Breeze\Breeze;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 
 class FormManager
 {
@@ -68,6 +69,20 @@ class FormManager
 
 
 
+    protected function fallbackFormName($formName) {
+        $formNameParts = explode('.',$this->formName);
+
+        $formType = Arr::get($formNameParts,1,'');
+
+        $formTypeFallbacks = config('foorm.types_fallbacks',[]);
+        if (!Arr::get($formTypeFallbacks,$formType)) {
+            return $formName;
+        }
+
+        return $formNameParts[0].'.'.  $formTypeFallbacks[$formType];
+
+    }
+
     public function getConfig() {
 
         $defaultConfig = config('foorm',[]);
@@ -84,7 +99,10 @@ class FormManager
         $formConfig = config('foorms.'.$this->formName,false);
 
         if (!is_array($formConfig)) {
-            throw new \InvalidArgumentException('Configuration of foorm '.$this->formName.' not found');
+            $formConfig = config('foorms.'.$this->fallbackFormName($this->formName),false);
+            if (!is_array($formConfig)) {
+                throw new \InvalidArgumentException('Configuration of foorm ' . $this->formName . ' not found');
+            }
         }
 
         $finalConfig = array_replace_recursive($defaultConfig,$formConfig);
