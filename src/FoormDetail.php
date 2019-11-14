@@ -389,9 +389,9 @@ class FoormDetail extends Foorm
 
         foreach ($this->hasManies as $hasManyKey => $hasManyValue) {
             $saveRelatedName = 'saveRelated' . studly_case($hasManyKey);
-            $hasManyType = $hasManyValue['hasManyType'];
-            $saveType = array_get($hasManyValue, 'saveType', false);
-            $saveTypeParams = array_get($hasManyValue, 'saveTypeParams', array());
+            $hasManyType = $hasManyValue['relationType'];
+            $saveType = $this->getRelationConfig($hasManyKey,'saveType', 'standard');
+            $saveTypeParams = $this->getRelationConfig($hasManyKey,'saveTypeParams', []);
             if ($saveType) {
                 $hasManyType = $hasManyType . studly_case($saveType);
             }
@@ -404,9 +404,17 @@ class FoormDetail extends Foorm
 
     protected function getRelationFieldsFromConfig($relation)
     {
+        return $this->getRelationConfig($relation,'fields', []);
+    }
+
+    protected function getRelationConfig($relation,$key = null, $defaultValue = null)
+    {
         $relationsConfig = array_get($this->config, 'relations', []);
         $relationConfig = array_get($relationsConfig, $relation, []);
-        return array_get($relationConfig, 'fields', []);
+        if (is_null($key)) {
+            return $relationConfig;
+        }
+        return array_get($relationConfig, $key, $defaultValue);
     }
 
     /*
@@ -457,14 +465,14 @@ class FoormDetail extends Foorm
         $actionsToDo = array_get($params, 'actions', []);
         $actionsToDo = array_merge($standardActions, $actionsToDo);
 
-        $statusKey = array_get($this->config['relations'][$hasManyKey], 'status-key', 'status');
+        $statusKey = $this->getRelationConfig($hasManyKey,'status-key', 'status');
 
         foreach (array_get($hasManyInputs, $pkName, []) as $i => $pk) {
 
             $status = $hasManyInputs[$statusKey][$i];
 
             $inputArray = [];
-            foreach ($this->getRelationFieldsFromConfig($hasManyKey) as $key) {
+            foreach ($this->getRelationFieldsFromConfig($hasManyKey) as $key => $value) {
                 $inputArray[$key] = $hasManyInputs[$key][$i];
             }
 
@@ -475,8 +483,9 @@ class FoormDetail extends Foorm
                 $pivotValues[$pivotField] = array_get($inputArray, $pivotField, null);
             }
 
-            if (array_get($hasManyValue, 'orderKey')) {
-                $pivotValues[$hasManyValue['orderKey']] = $i;
+            $orderKey = $this->getRelationConfig($hasManyKey,'orderKey');
+            if ($orderKey) {
+                $pivotValues[$orderKey] = $i;
             }
 
 
@@ -488,12 +497,20 @@ class FoormDetail extends Foorm
                     break;
                 case 'new':
                     $hasManyModel = $hasManyModelName::create($inputArray);
+                    $callbacks = $this->getRelationConfig($hasManyKey,'afterNewCallbackMethods',[]);
+                    foreach ($callbacks as $callback) {
+                        $hasManyModel->$callback($inputArray);
+                    }
                     $this->model->$hasManyKey()->attach($hasManyModel->getKey(), $pivotValues);
                     break;
                 case 'updated':
                     $hasManyModel = $hasManyModelName::find($pk);
                     if ($actionsToDo['update']) {
                         $hasManyModel->update($inputArray);
+                        $callbacks = $this->getRelationConfig($hasManyKey,'afterUpdateCallbackMethods',[]);
+                        foreach ($callbacks as $callback) {
+                            $hasManyModel->$callback($inputArray);
+                        }
                     }
                     $this->model->$hasManyKey()->detach($hasManyModel->getKey());
                     $this->model->$hasManyKey()->attach($hasManyModel->getKey(), $pivotValues);
