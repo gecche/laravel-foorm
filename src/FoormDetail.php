@@ -54,9 +54,9 @@ class FoormDetail extends Foorm
     public function setModelData()
     {
 
-        $relations = $this->getRelations();
+        $relationsKeys = array_keys($this->getRelations());
 
-        foreach (array_keys($relations) as $relationKey) {
+        foreach ($relationsKeys as $relationKey) {
 
             $this->model->load($relationKey);
 
@@ -72,6 +72,13 @@ class FoormDetail extends Foorm
 
     protected function removeAndSetDefaultFromConfig($modelData, $configData, $level = 1)
     {
+        //SE LIVELLO > 1 E CHIAVE DI MODELDATA E' NUMERICA DEVO ENTRARE DENTRO
+        if ($level > 1 && count($modelData) > 0 && count(array_filter(array_keys($modelData), 'is_string')) <= 0) {
+            foreach ($modelData as $numericKey => $value) {
+                $modelData[$numericKey] = $this->removeAndSetDefaultFromConfig($modelData[$numericKey], $configData, ($level + 1));
+            }
+            return $modelData;
+        }
         $keyNotInConfig = array_keys(array_diff_key($modelData, $configData));
 
         foreach ($keyNotInConfig as $keyToEliminate) {
