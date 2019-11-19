@@ -473,6 +473,7 @@ class FoormDetail extends Foorm
         $actionsToDo = array_merge($standardActions, $actionsToDo);
 
         $statusKey = $this->getRelationConfig($hasManyKey,'status-key', 'status');
+        $orderKey = $this->getRelationConfig($hasManyKey,'orderKey');
 
         foreach (array_get($hasManyInputs, $pkName, []) as $i => $pk) {
 
@@ -490,7 +491,6 @@ class FoormDetail extends Foorm
                 $pivotValues[$pivotField] = array_get($inputArray, $pivotField, null);
             }
 
-            $orderKey = $this->getRelationConfig($hasManyKey,'orderKey');
             if ($orderKey) {
                 $pivotValues[$orderKey] = $i;
             }
@@ -546,9 +546,9 @@ class FoormDetail extends Foorm
         $hasManyModel = new $hasManyModelName();
         $pkName = $hasManyModel->getKeyName();
 
-        $this->model->$hasManyKey()->sync(array());
+        $this->model->$hasManyKey()->sync([]);
 
-        $orderKey = array_get($hasManyValue, 'orderKey');
+        $orderKey = $this->getRelationConfig($hasManyKey,'orderKey');
 
 
         foreach (array_get($hasManyInputs, $pkName, []) as $i => $pk) {
@@ -587,7 +587,8 @@ class FoormDetail extends Foorm
         $hasManyModel = new $hasManyModelName();
         $pkName = $hasManyModel->getKeyName();
 
-        $statusKey = array_get($this->config['relations'][$hasManyKey], 'status-key', 'status');
+        $statusKey = $this->getRelationConfig($hasManyKey,'status-key', 'status');
+        $orderKey = $this->getRelationConfig($hasManyKey,'orderKey');
 
         foreach (array_get($hasManyInputs, $pkName, []) as $i => $pk) {
 
@@ -598,8 +599,8 @@ class FoormDetail extends Foorm
                 $inputArray[$key] = $hasManyInputs[$key][$i];
             }
 
-            if (array_get($hasManyValue, 'orderKey')) {
-                $pivotValues[$hasManyValue['orderKey']] = $i;
+            if ($orderKey) {
+                $pivotValues[$orderKey] = $i;
             }
             unset($inputArray[$statusKey]);
 
@@ -666,7 +667,7 @@ class FoormDetail extends Foorm
             $hasManyModel->delete();
         }
 
-        $orderKey = array_get($hasManyValue, 'orderKey');
+        $orderKey = $this->getRelationConfig($hasManyKey,'orderKey');
         $morphTypeKey = array_get($hasManyValue, 'morphType');
         $morphIdKey = array_get($hasManyValue, 'morphId');
 
