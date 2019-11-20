@@ -652,6 +652,10 @@ class FoormDetail extends Foorm
         }
     }
 
+
+    //QUI C'ERA UN CASINO, FORSE PERCHE' AL TEMPO NON FUNZIONAVA BENE SU LARAVEL 5.0
+    //PERO' QUEST ADEVE DIVENTARE UNA MORPH_MANY PRENDENDO SECONDO ME DAL METODO HASMANYSTANDARD
+    //NON DOVREBBE ESSERE INCASINATISSIMO MA VA FATTO
     public function saveRelatedHasManyMorph($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
     {
 
