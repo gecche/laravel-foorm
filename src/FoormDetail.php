@@ -6,6 +6,7 @@ namespace Gecche\Foorm;
 use Gecche\DBHelper\Facades\DBHelper;
 use Gecche\Breeze\Breeze;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Validator;
 
@@ -427,6 +428,8 @@ class FoormDetail extends Foorm
     /*
      * BelongsTo - Non Standard: add a new belongs to model while saving the main model
      */
+
+    //DA VEDERE ALMENO PER QUANT RIGUARDA IL MORPH
     public function saveRelatedBelongsTo($belongsToKey, $belongsToValue, $input, $params = array())
     {
 
@@ -458,6 +461,8 @@ class FoormDetail extends Foorm
     /*
      * BelongsToMany - SaveTYPE: ADD
      */
+
+    //DOVREBBE ESSERE OK
     public function saveRelatedBelongsToManyAdd($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
     {
 
@@ -503,21 +508,17 @@ class FoormDetail extends Foorm
                     $this->model->$hasManyKey()->attach($hasManyModel->getKey(), $pivotValues);
                     break;
                 case 'new':
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey,'beforeNewCallbackMethods',$hasManyModel,$inputArray);
                     $hasManyModel = $hasManyModelName::create($inputArray);
-                    $callbacks = $this->getRelationConfig($hasManyKey,'afterNewCallbackMethods',[]);
-                    foreach ($callbacks as $callback) {
-                        $hasManyModel->$callback($inputArray);
-                    }
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey,'afterNewCallbackMethods',$hasManyModel,$inputArray);
                     $this->model->$hasManyKey()->attach($hasManyModel->getKey(), $pivotValues);
                     break;
                 case 'updated':
                     $hasManyModel = $hasManyModelName::find($pk);
                     if ($actionsToDo['update']) {
+                        $this->performCallbacksSaveRelatedOperation($hasManyKey,'beforeUpdateCallbackMethods',$hasManyModel,$inputArray);
                         $hasManyModel->update($inputArray);
-                        $callbacks = $this->getRelationConfig($hasManyKey,'afterUpdateCallbackMethods',[]);
-                        foreach ($callbacks as $callback) {
-                            $hasManyModel->$callback($inputArray);
-                        }
+                        $this->performCallbacksSaveRelatedOperation($hasManyKey,'afterUpdateCallbackMethods',$hasManyModel,$inputArray);
                     }
                     $this->model->$hasManyKey()->detach($hasManyModel->getKey());
                     $this->model->$hasManyKey()->attach($hasManyModel->getKey(), $pivotValues);
@@ -539,6 +540,8 @@ class FoormDetail extends Foorm
         $this->model->load($hasManyKey);
     }
 
+
+    //ANCORA DA SISTEMARE CREDO
     public function saveRelatedBelongsToManyStandard($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
     {
 
@@ -595,12 +598,14 @@ class FoormDetail extends Foorm
             $status = $hasManyInputs[$statusKey][$i];
 
             $inputArray = [];
-            foreach ($this->getRelationFieldsFromConfig($hasManyKey) as $key) {
-                $inputArray[$key] = $hasManyInputs[$key][$i];
+            foreach (array_keys($this->getRelationFieldsFromConfig($hasManyKey)) as $key) {
+                if (array_key_exists($key,$hasManyInputs) && array_key_exists($i,$hasManyInputs[$key])) {
+                    $inputArray[$key] = $hasManyInputs[$key][$i];
+                }
             }
 
             if ($orderKey) {
-                $pivotValues[$orderKey] = $i;
+                $inputArray[$orderKey] = $i;
             }
             unset($inputArray[$statusKey]);
 
@@ -608,13 +613,17 @@ class FoormDetail extends Foorm
             switch ($status) {
                 case 'new':
                     $hasManyModel = new $hasManyModelName($inputArray);
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey,'beforeNewCallbackMethods',$hasManyModel,$inputArray);
                     $this->model->$hasManyKey()->save($hasManyModel);
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey,'afterNewCallbackMethods',$hasManyModel,$inputArray);
                     break;
                 case 'old':
                     break;
                 case 'updated':
                     $hasManyModel = $hasManyModelName::find($pk);
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey,'beforeNewCallbackMethods',$hasManyModel,$inputArray);
                     $hasManyModel->update($inputArray);
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey,'afterUpdateCallbackMethods',$hasManyModel,$inputArray);
                     break;
                 case 'deleted':
                     $hasManyModelName::destroy($pk);
@@ -626,8 +635,11 @@ class FoormDetail extends Foorm
 
         }
         $this->model->load($hasManyKey);
+
     }
 
+
+    //DA SISTEMARE E CAPIRE CHE CAVOLO ERA :)
     public function saveRelatedHasManyAssociation($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
     {
 
@@ -653,52 +665,22 @@ class FoormDetail extends Foorm
     }
 
 
-    //QUI C'ERA UN CASINO, FORSE PERCHE' AL TEMPO NON FUNZIONAVA BENE SU LARAVEL 5.0
-    //PERO' QUEST ADEVE DIVENTARE UNA MORPH_MANY PRENDENDO SECONDO ME DAL METODO HASMANYSTANDARD
-    //NON DOVREBBE ESSERE INCASINATISSIMO MA VA FATTO
-    public function saveRelatedHasManyMorph($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
+
+    public function saveRelatedMorphManyStandard($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
     {
 
-        $hasManyModelName = $hasManyValue['modelName'];
-        $hasManyModel = new $hasManyModelName();
-        $pkName = $hasManyModel->getKeyName();
+        return $this->saveRelatedHasManyStandard($hasManyKey, $hasManyValue, $hasManyInputs, $params);
 
-        $hasManyModelForeignKey = array_get($hasManyValue, 'foreignKey');
-        $hasManyModelForeignKey = $hasManyModelForeignKey ?: $hasManyModel->getForeignKey();
+    }
 
 
-        foreach ($this->model->$hasManyKey as $hasManyModel) {
-            $hasManyModel->delete();
+    protected function performCallbacksSaveRelatedOperation($relationKey, $callbacksType, $relationModel, $inputArray) {
+
+        $callbacks = $this->getRelationConfig($relationKey,$callbacksType,[]);
+        foreach ($callbacks as $callback) {
+            $relationModel->$callback($inputArray);
         }
 
-        $orderKey = $this->getRelationConfig($hasManyKey,'orderKey');
-        $morphTypeKey = array_get($hasManyValue, 'morphType');
-        $morphIdKey = array_get($hasManyValue, 'morphId');
-
-
-        foreach (array_get($hasManyInputs, $pkName, []) as $i => $pk) {
-
-
-            $inputArray = [];
-            foreach ($this->getRelationFieldsFromConfig($hasManyKey) as $key) {
-                $inputArray[$key] = $hasManyInputs[$key][$i];
-            }
-
-            if ($orderKey)
-                $inputArray[$orderKey] = $i;
-
-            $inputArray[$morphTypeKey] = $inputArray['morph_type'];
-
-            $inputArray[$morphIdKey] = $inputArray['morph_id'];
-
-
-            $inputArray[$hasManyModelForeignKey] = $this->model->getKey();
-
-
-            $hasManyModel = $hasManyModelName::create($inputArray);
-            $hasManyModel->save();
-
-        }
     }
 
 
