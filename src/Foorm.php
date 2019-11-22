@@ -374,12 +374,25 @@ abstract class Foorm
 
     public function cleanMetadata($metadata) {
 
+        $relationFieldsToUnset = [
+            'modelRelativeName',
+            'saveType',
+            'saveParams',
+            'pivotFields',
+            'beforeNewCallbackMethods',
+            'beforeUpdateCallbackMethods',
+            'beforeDeleteCallbackMethods',
+            'afterNewCallbackMethods',
+            'afterUpdateCallbackMethods',
+            'afterDeleteCallbackMethods',
+        ];
+
         foreach (array_get($metadata,'relations',[]) as $key => $relation) {
 
-            $relation['modelName'] = $relation['modelRelativeName'];
-            unset($relation['modelRelativeName']);
+            foreach ($relationFieldsToUnset as $field) {
+                unset($relation[$field]);
+            }
             $metadata['relations'][$key] = $relation;
-
         }
 
         return $metadata;

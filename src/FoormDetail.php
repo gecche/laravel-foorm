@@ -363,6 +363,7 @@ class FoormDetail extends Foorm
 
         $this->setFieldsToModel($this->model, Arr::get($this->config, 'fields', []), $this->inputForSave);
 
+        //EVENTUALMENTE QUI AGGIUNGERE UN MODO PER SALVARE I BELONGS TO AGGIUNTI A RUN-TIME (MA BOH)
 
         $saved = $this->model->save();
 
@@ -423,92 +424,9 @@ class FoormDetail extends Foorm
 
 
     /*
-     * BelongsToMany - SaveTYPE: ADD
-     */
-
-    //DOVREBBE ESSERE OK
-    //Sì, PERO' NON MI PIACE VA MESSO INSIEME ALL'ALTRO CON AL MESSIMO UN AGGIUNTA DI ELEMENTI
-    public function saveRelatedBelongsToManyAdd($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
-    {
-
-        $hasManyModelName = $hasManyValue['modelName'];
-        $hasManyModel = new $hasManyModelName();
-        $pkName = $hasManyModel->getKeyName();
-
-        $standardActions = [
-            'update' => true,
-            'remove' => true,
-        ];
-        $actionsToDo = Arr::get($params, 'actions', []);
-        $actionsToDo = array_merge($standardActions, $actionsToDo);
-
-        $statusKey = $this->getRelationConfig($hasManyKey,'status-key', 'status');
-        $orderKey = $this->getRelationConfig($hasManyKey,'orderKey');
-
-        foreach (Arr::get($hasManyInputs, $pkName, []) as $i => $pk) {
-
-            $status = $hasManyInputs[$statusKey][$i];
-
-            $inputArray = [];
-            foreach ($this->getRelationFieldsFromConfig($hasManyKey) as $key => $value) {
-                $inputArray[$key] = $hasManyInputs[$key][$i];
-            }
-
-            $pivotFields = $this->model->getPivotKeys($hasManyKey);
-            $pivotValues = [];
-
-            foreach ($pivotFields as $pivotField) {
-                $pivotValues[$pivotField] = Arr::get($inputArray, $pivotField, null);
-            }
-
-            if ($orderKey) {
-                $pivotValues[$orderKey] = $i;
-            }
-
-
-            switch ($status) {
-                case 'old':
-                    $hasManyModel = $hasManyModelName::find($pk);
-                    $this->model->$hasManyKey()->detach($hasManyModel->getKey());
-                    $this->model->$hasManyKey()->attach($hasManyModel->getKey(), $pivotValues);
-                    break;
-                case 'new':
-                    $this->performCallbacksSaveRelatedOperation($hasManyKey,'beforeNewCallbackMethods',$hasManyModel,$inputArray);
-                    $hasManyModel = $hasManyModelName::create($inputArray);
-                    $this->performCallbacksSaveRelatedOperation($hasManyKey,'afterNewCallbackMethods',$hasManyModel,$inputArray);
-                    $this->model->$hasManyKey()->attach($hasManyModel->getKey(), $pivotValues);
-                    break;
-                case 'updated':
-                    $hasManyModel = $hasManyModelName::find($pk);
-                    if ($actionsToDo['update']) {
-                        $this->performCallbacksSaveRelatedOperation($hasManyKey,'beforeUpdateCallbackMethods',$hasManyModel,$inputArray);
-                        $hasManyModel->update($inputArray);
-                        $this->performCallbacksSaveRelatedOperation($hasManyKey,'afterUpdateCallbackMethods',$hasManyModel,$inputArray);
-                    }
-                    $this->model->$hasManyKey()->detach($hasManyModel->getKey());
-                    $this->model->$hasManyKey()->attach($hasManyModel->getKey(), $pivotValues);
-                    break;
-                case 'deleted':
-                    if ($actionsToDo['remove']) {
-                        $hasManyModel = $hasManyModelName::destroy($pk);
-                    } else {
-                        $hasManyModel = $hasManyModelName::find($pk);
-                        $this->model->$hasManyKey()->detach($hasManyModel->getKey());
-                    }
-                    break;
-                default:
-                    throw new \Exception("Invalid status " . $status);
-                    break;
-            }
-
-        }
-        $this->model->load($hasManyKey);
-    }
-
-
-    /*
      * Salvataggio classico di belogns to many con aggancio/sgancio dei modelli dal modello principale e gestione dei
      * campi aggiuntivi della tabella pivot se presenti
+     * Aggiunta anche la possibilità di agigungere direttamente nuovi elementi della tabella di destinazione se presenti
      */
     //CREDO SIA OK
     public function saveRelatedBelongsToMany($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
@@ -523,17 +441,12 @@ class FoormDetail extends Foorm
 
         //Se c'è un cmapo di ordinamento nella pivot
         $orderKey = $this->getRelationConfig($hasManyKey,'orderKey');
+        $pivotFields = $this->getRelationConfig($hasManyKey,'pivotFields',[]);
+        $statusKey = $this->getRelationConfig($hasManyKey,'statusKey', 'status');
 
         foreach (Arr::get($hasManyInputs, $pkName, []) as $i => $pk) {
 
-            $inputArray = [];
-            foreach ($this->getRelationFieldsFromConfig($hasManyKey) as $key) {
-                $inputArray[$key] = $hasManyInputs[$key][$i];
-            }
-
-            $pivotFields = $this->model->getPivotKeys($hasManyKey);
             $pivotValues = [];
-
 
             foreach ($pivotFields as $pivotField) {
 
@@ -543,9 +456,38 @@ class FoormDetail extends Foorm
                     continue;
                 }
 
-                $pivotValues[$pivotField] = Arr::get($inputArray, $pivotField, null);
+                $pivotValues[$pivotField] = Arr::get(Arr::get($hasManyInputs, $pivotField, []),$i);
 
             }
+
+            //In caso di possibile aggiunta salvo il modello
+            $status = null;
+            if (array_key_exists($statusKey,$hasManyInputs)) {
+                $status = Arr::get($hasManyInputs[$statusKey],$i);
+            }
+
+            switch ($status) {
+                case 'new':
+
+                    $inputArray = [];
+                    foreach ($this->getRelationFieldsFromConfig($hasManyKey) as $key) {
+                        if (array_key_exists($key,$hasManyInputs) && array_key_exists($i,$hasManyInputs[$key])) {
+                            $inputArray[$key] = $hasManyInputs[$key][$i];
+                        }
+                    }
+
+                    $hasManyModel = new $hasManyModelName($inputArray);
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey,'beforeNewCallbackMethods',$hasManyModel,$inputArray);
+                    $hasManyModel->save();
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey,'afterNewCallbackMethods',$hasManyModel,$inputArray);
+                    $pk = $hasManyModel->getKey();
+                    break;
+                default:
+                    break;
+            }
+
+
+            //ESEGUO L'ATTACH CON I PIVOT VALUES
             $this->model->$hasManyKey()->attach($pk, $pivotValues);
 
         }
@@ -564,7 +506,7 @@ class FoormDetail extends Foorm
         $hasManyModel = new $hasManyModelName();
         $pkName = $hasManyModel->getKeyName();
 
-        $statusKey = $this->getRelationConfig($hasManyKey,'status-key', 'status');
+        $statusKey = $this->getRelationConfig($hasManyKey,'statusKey', 'status');
         $orderKey = $this->getRelationConfig($hasManyKey,'orderKey');
 
         foreach (Arr::get($hasManyInputs, $pkName, []) as $i => $pk) {
@@ -626,6 +568,7 @@ class FoormDetail extends Foorm
     //SE LE "CANCELLO" DA QUI NON E' CHE CANCELLO LA PRATICA MA SEMPLICEMENTE GLI TOLGO LA CATEGORIA "GESTIONE"
     //METTENDO A NULL LA FAOREIGN KEY.
     //NON FREQUENTE MA HA SENSO: E' UN TIPO DI GESTIONE INVERSA DI UN BELONGSTO.
+    //SECONDO ME FUNZIONA ANCHE AL MOMENTO
     public function saveRelatedHasManyAssociation($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
     {
 
