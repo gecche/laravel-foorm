@@ -480,15 +480,15 @@ class Form
         $saveTypeValues = array_get($array, $key, $defaultSaveType);
         if (is_array($saveTypeValues)) {
             $saveType = array_get($saveTypeValues, 'type', false);
-            $saveTypeParams = array_get($saveTypeValues, 'params', array());
+            $saveParams = array_get($saveTypeValues, 'params', array());
         } else {
             $saveType = $saveTypeValues;
-            $saveTypeParams = array();
+            $saveParams = array();
         }
 
         return [
             'type' => $saveType,
-            'params' => $saveTypeParams,
+            'params' => $saveParams,
         ];
     }
 
@@ -518,7 +518,7 @@ class Form
                         $relations[$key]['pivotModelName'] = $pivotModelName;
                     }
                     $relations[$key]['saveType'] = $saveType;
-                    $relations[$key]['saveTypeParams'] = $saveTypeArray['params'];
+                    $relations[$key]['saveParams'] = $saveTypeArray['params'];
 
                     if (isset($this->relationsOrderKey[$key]) && !$this->relationsOrderKey[$key]) {
                         $relations[$key]['orderKey'] = false;
@@ -537,7 +537,7 @@ class Form
                     $saveTypeArray = $this->getSaveType($this->belongsToManiesSaveTypes, $key, 'add');
                     $saveType = $saveTypeArray['type'];
                     $relations[$key]['saveType'] = $saveType;
-                    $relations[$key]['saveTypeParams'] = $saveTypeArray['params'];
+                    $relations[$key]['saveParams'] = $saveTypeArray['params'];
 
                     if (isset($this->relationsOrderKey[$key]) && !$this->relationsOrderKey[$key]) {
                         $relations[$key]['orderKey'] = false;
@@ -551,7 +551,7 @@ class Form
                     $saveTypeArray = $this->getSaveType($this->hasManiesSaveTypes, $key, 'standard');
                     $saveType = $saveTypeArray['type'];
                     $relations[$key]['saveType'] = $saveType;
-                    $relations[$key]['saveTypeParams'] = $saveTypeArray['params'];
+                    $relations[$key]['saveParams'] = $saveTypeArray['params'];
 
                     if (isset($this->relationsOrderKey[$key]) && !$this->relationsOrderKey[$key]) {
                         $relations[$key]['orderKey'] = false;
@@ -564,7 +564,7 @@ class Form
                     $saveTypeArray = $this->getSaveType($this->hasManiesSaveTypes, $key, 'standard');
                     $saveType = $saveTypeArray['type'];
                     $relations[$key]['saveType'] = $saveType;
-                    $relations[$key]['saveTypeParams'] = $saveTypeArray['params'];
+                    $relations[$key]['saveParams'] = $saveTypeArray['params'];
                     $relations[$key]['max_items'] = 1;
                     break;
                 default:
@@ -615,7 +615,7 @@ class Form
                     $saveTypeArray = $this->getSaveType($this->belongsTosSaveTypes, $key, 'standard');
                     $saveType = $saveTypeArray['type'];
                     $relations[$key]['saveType'] = $saveType;
-                    $relations[$key]['saveTypeParams'] = $saveTypeArray['params'];
+                    $relations[$key]['saveParams'] = $saveTypeArray['params'];
 
                     $relations[$key]['relationName'] = $key;
                     break;

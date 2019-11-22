@@ -103,12 +103,12 @@ class ModelFormDetail extends ModelForm
         foreach ($this->belongsTos as $belongsToKey => $belongsToValue) {
             $saveRelatedName = 'saveRelated' . studly_case($belongsToKey);
             $saveType = array_get($belongsToValue, 'saveType', 'standard');
-            $saveTypeParams = array_get($belongsToValue, 'saveTypeParams', array());
+            $saveParams = array_get($belongsToValue, 'saveParams', array());
 
             if ($saveType == 'standard') {
                 continue;
             }
-            $this->$saveRelatedName('BelongsTo', $belongsToKey, $belongsToValue, $input, $saveTypeParams);
+            $this->$saveRelatedName('BelongsTo', $belongsToKey, $belongsToValue, $input, $saveParams);
         }
 
 
@@ -119,11 +119,11 @@ class ModelFormDetail extends ModelForm
             $saveRelatedName = 'saveRelated' . studly_case($hasManyKey);
             $hasManyType = $hasManyValue['hasManyType'];
             $saveType = array_get($hasManyValue, 'saveType', false);
-            $saveTypeParams = array_get($hasManyValue, 'saveTypeParams', array());
+            $saveParams = array_get($hasManyValue, 'saveParams', array());
             if ($saveType) {
                 $hasManyType = $hasManyType . studly_case($saveType);
             }
-            $this->$saveRelatedName($hasManyType, $hasManyKey, $hasManyValue, $input, $saveTypeParams);
+            $this->$saveRelatedName($hasManyType, $hasManyKey, $hasManyValue, $input, $saveParams);
         }
     }
 

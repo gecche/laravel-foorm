@@ -119,23 +119,23 @@ class FoormDetail extends Foorm
 
         $extraDefaults = $this->getExtraDefaults();
 
-        $modelFieldsKeys = array_keys(array_get($this->config, 'fields', []));
+        $modelFieldsKeys = array_keys(Arr::get($this->config, 'fields', []));
 
         $modelFields = [];
         foreach ($modelFieldsKeys as $fieldKey) {
             $modelFields[$fieldKey] = array_key_exists($fieldKey, $extraDefaults)
                 ? $extraDefaults[$fieldKey]
-                : array_get($this->config['fields'][$fieldKey], 'default');
+                : Arr::get($this->config['fields'][$fieldKey], 'default');
         }
 
-        $configRelations = array_keys(array_get($this->config, 'relations', []));
+        $configRelations = array_keys(Arr::get($this->config, 'relations', []));
 
         foreach ($configRelations as $relationKey) {
 
 
-            $relationConfig = array_get($this->config['relations'], $relationKey, []);
+            $relationConfig = Arr::get($this->config['relations'], $relationKey, []);
 
-            $modelFields[$relationKey] = $this->_getAllFieldsAndDefaultsFromConfig($relationConfig, array_get($extraDefaults, $relationKey, []));
+            $modelFields[$relationKey] = $this->_getAllFieldsAndDefaultsFromConfig($relationConfig, Arr::get($extraDefaults, $relationKey, []));
 
         }
 
@@ -146,23 +146,23 @@ class FoormDetail extends Foorm
 
     protected function _getAllFieldsAndDefaultsFromConfig($relationConfig, $extraDefaults)
     {
-        $modelFieldsKeys = array_keys(array_get($relationConfig, 'fields', []));
+        $modelFieldsKeys = array_keys(Arr::get($relationConfig, 'fields', []));
 
         $modelFields = [];
         foreach ($modelFieldsKeys as $fieldKey) {
             $modelFields[$fieldKey] = array_key_exists($fieldKey, $extraDefaults)
                 ? $extraDefaults[$fieldKey]
-                : array_get($relationConfig['fields'][$fieldKey], 'default');
+                : Arr::get($relationConfig['fields'][$fieldKey], 'default');
         }
 
-        $configRelations = array_keys(array_get($relationConfig, 'relations', []));
+        $configRelations = array_keys(Arr::get($relationConfig, 'relations', []));
 
         foreach ($configRelations as $relationKey) {
 
 
-            $subRelationConfig = array_get($relationConfig['relations'], $relationKey, []);
+            $subRelationConfig = Arr::get($relationConfig['relations'], $relationKey, []);
 
-            $modelFields[$relationKey] = $this->_getAllFieldsAndDefaultsFromConfig($subRelationConfig, array_get($extraDefaults, $relationKey, []));
+            $modelFields[$relationKey] = $this->_getAllFieldsAndDefaultsFromConfig($subRelationConfig, Arr::get($extraDefaults, $relationKey, []));
 
         }
 
@@ -175,12 +175,12 @@ class FoormDetail extends Foorm
     //SOLO AL LIVELLO DEL MODELLO PRINCIPALE
     protected function setFixedConstraints($data)
     {
-        $fixedConstraints = array_get($this->params, 'fixed_constraints', []);
+        $fixedConstraints = Arr::get($this->params, 'fixed_constraints', []);
 
         foreach ($fixedConstraints as $fixedConstraint) {
 
 
-            $field = array_get($fixedConstraint, 'field', null);
+            $field = Arr::get($fixedConstraint, 'field', null);
 
             if (!$field || !is_string($field) || !array_key_exists('value', $fixedConstraint)) {
                 continue;
@@ -231,9 +231,9 @@ class FoormDetail extends Foorm
         $input = is_array($input) ? $input : $this->input;
 
         $finalSettings = $this->getValidationSettings($settings);
-        $rules = array_get($finalSettings, 'rules', []);
-        $customMessages = array_get($finalSettings, 'customMessages', []);
-        $customAttributes = array_get($finalSettings, 'customAttributes', []);
+        $rules = Arr::get($finalSettings, 'rules', []);
+        $customMessages = Arr::get($finalSettings, 'customMessages', []);
+        $customAttributes = Arr::get($finalSettings, 'customAttributes', []);
         $this->validator = Validator::make($input, $rules, $customMessages, $customAttributes);
 
         if (!$this->validator->passes()) {
@@ -271,7 +271,7 @@ class FoormDetail extends Foorm
 
             $hasManyValidationSettings = $hasManyModel->getModelValidationSettings();
 
-            $hasManyRules = array_get($hasManyValidationSettings, 'rules', []);
+            $hasManyRules = Arr::get($hasManyValidationSettings, 'rules', []);
             foreach ($hasManyRules as $hasManyRuleKey => $hasManyRuleValue) {
                 $valueRules = explode('|', $hasManyRuleValue);
 
@@ -344,7 +344,7 @@ class FoormDetail extends Foorm
     {
 
         foreach (array_keys($configFields) as $fieldName) {
-            $model->$fieldName = array_get($input, $fieldName);
+            $model->$fieldName = Arr::get($input, $fieldName);
         }
 
     }
@@ -361,7 +361,7 @@ class FoormDetail extends Foorm
             $this->isValid($this->inputForSave);
         }
 
-        $this->setFieldsToModel($this->model, array_get($this->config, 'fields', []), $this->inputForSave);
+        $this->setFieldsToModel($this->model, Arr::get($this->config, 'fields', []), $this->inputForSave);
 
 
         $saved = $this->model->save();
@@ -384,28 +384,24 @@ class FoormDetail extends Foorm
 
         foreach ($this->belongsTos as $belongsToKey => $belongsToValue) {
             $saveRelatedName = 'saveRelated' . studly_case($belongsToKey);
-            $saveType = array_get($belongsToValue, 'saveType', 'standard');
-            $saveTypeParams = array_get($belongsToValue, 'saveTypeParams', array());
-
-            if ($saveType == 'standard') {
-                continue;
-            }
-
-            $this->$saveRelatedName('BelongsTo', $belongsToKey, $belongsToValue, $input, $saveTypeParams);
+            $saveParams = $this->getRelationConfig($belongsToKey, 'saveParams', []);
+            $this->$saveRelatedName('BelongsTo', $belongsToKey, $belongsToValue, $input, $saveParams);
         }
 
 
         foreach ($this->hasManies as $hasManyKey => $hasManyValue) {
             $saveRelatedName = 'saveRelated' . studly_case($hasManyKey);
             $hasManyType = $hasManyValue['relationType'];
-            $saveType = $this->getRelationConfig($hasManyKey,'saveType', 'standard');
-            $saveTypeParams = $this->getRelationConfig($hasManyKey,'saveTypeParams', []);
+            $saveType = $this->getRelationConfig($hasManyKey,'saveType');
+            $saveParams = $this->getRelationConfig($hasManyKey,'saveParams', []);
+
             if ($saveType) {
                 $hasManyType = $hasManyType . studly_case($saveType);
             }
+
             $hasManyInputs = preg_grep_keys('/^' . $hasManyKey . '-/', $input);
             $hasManyInputs = trim_keys($hasManyKey . '-', $hasManyInputs);
-            $this->$saveRelatedName($hasManyType, $hasManyKey, $hasManyValue, $hasManyInputs, $saveTypeParams);
+            $this->$saveRelatedName($hasManyType, $hasManyKey, $hasManyValue, $hasManyInputs, $saveParams);
         }
     }
 
@@ -417,52 +413,21 @@ class FoormDetail extends Foorm
 
     protected function getRelationConfig($relation,$key = null, $defaultValue = null)
     {
-        $relationsConfig = array_get($this->config, 'relations', []);
-        $relationConfig = array_get($relationsConfig, $relation, []);
+        $relationsConfig = Arr::get($this->config, 'relations', []);
+        $relationConfig = Arr::get($relationsConfig, $relation, []);
         if (is_null($key)) {
             return $relationConfig;
         }
-        return array_get($relationConfig, $key, $defaultValue);
+        return Arr::get($relationConfig, $key, $defaultValue);
     }
 
-    /*
-     * BelongsTo - Non Standard: add a new belongs to model while saving the main model
-     */
-
-    //DA VEDERE ALMENO PER QUANT RIGUARDA IL MORPH
-    public function saveRelatedBelongsTo($belongsToKey, $belongsToValue, $input, $params = array())
-    {
-
-        $belongsToModelName = $belongsToValue['modelName'];
-        $belongsToRelationName = $belongsToValue['relationName'];
-        $belongsToModel = $this->model->$belongsToRelationName;
-
-        if (!$belongsToModel)
-            $belongsToModel = new $belongsToModelName;
-
-        $belongsToInputs = preg_grep_keys('/^' . $belongsToRelationName . '-/', $input);
-        $belongsToInputs = trim_keys($belongsToRelationName . '-', $belongsToInputs);
-
-        if ($belongsToValue['saveType'] == 'morphed') {
-            $morph_type = $belongsToRelationName . 'able_type';
-            $morph_id = $belongsToRelationName . 'able_id';
-            $belongsToInputs[$morph_id] = $this->model->getKey();
-            $belongsToInputs[$morph_type] = $this->modelName;
-        }
-
-        $this->setFieldsToModel($belongsToModel, $this->getRelationFieldsFromConfig($belongsToKey), $this->inputForSave);
-
-        $belongsToModel->save();
-
-        $this->model->$belongsToKey = $belongsToModel->getKey();
-        $this->model->save();
-    }
 
     /*
      * BelongsToMany - SaveTYPE: ADD
      */
 
     //DOVREBBE ESSERE OK
+    //Sì, PERO' NON MI PIACE VA MESSO INSIEME ALL'ALTRO CON AL MESSIMO UN AGGIUNTA DI ELEMENTI
     public function saveRelatedBelongsToManyAdd($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
     {
 
@@ -474,13 +439,13 @@ class FoormDetail extends Foorm
             'update' => true,
             'remove' => true,
         ];
-        $actionsToDo = array_get($params, 'actions', []);
+        $actionsToDo = Arr::get($params, 'actions', []);
         $actionsToDo = array_merge($standardActions, $actionsToDo);
 
         $statusKey = $this->getRelationConfig($hasManyKey,'status-key', 'status');
         $orderKey = $this->getRelationConfig($hasManyKey,'orderKey');
 
-        foreach (array_get($hasManyInputs, $pkName, []) as $i => $pk) {
+        foreach (Arr::get($hasManyInputs, $pkName, []) as $i => $pk) {
 
             $status = $hasManyInputs[$statusKey][$i];
 
@@ -493,7 +458,7 @@ class FoormDetail extends Foorm
             $pivotValues = [];
 
             foreach ($pivotFields as $pivotField) {
-                $pivotValues[$pivotField] = array_get($inputArray, $pivotField, null);
+                $pivotValues[$pivotField] = Arr::get($inputArray, $pivotField, null);
             }
 
             if ($orderKey) {
@@ -541,20 +506,25 @@ class FoormDetail extends Foorm
     }
 
 
-    //ANCORA DA SISTEMARE CREDO
-    public function saveRelatedBelongsToManyStandard($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
+    /*
+     * Salvataggio classico di belogns to many con aggancio/sgancio dei modelli dal modello principale e gestione dei
+     * campi aggiuntivi della tabella pivot se presenti
+     */
+    //CREDO SIA OK
+    public function saveRelatedBelongsToMany($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
     {
 
         $hasManyModelName = $hasManyValue['modelName'];
         $hasManyModel = new $hasManyModelName();
         $pkName = $hasManyModel->getKeyName();
 
+        //Faccio il sync con vuoto: cancello tutte le associazioni presenti
         $this->model->$hasManyKey()->sync([]);
 
+        //Se c'è un cmapo di ordinamento nella pivot
         $orderKey = $this->getRelationConfig($hasManyKey,'orderKey');
 
-
-        foreach (array_get($hasManyInputs, $pkName, []) as $i => $pk) {
+        foreach (Arr::get($hasManyInputs, $pkName, []) as $i => $pk) {
 
             $inputArray = [];
             foreach ($this->getRelationFieldsFromConfig($hasManyKey) as $key) {
@@ -567,12 +537,13 @@ class FoormDetail extends Foorm
 
             foreach ($pivotFields as $pivotField) {
 
+                //Il campo di ordinamento lo imposto io con l'ordine del form di interfaccia
                 if ($pivotField == $orderKey) {
                     $pivotValues[$pivotField] = $i;
                     continue;
                 }
 
-                $pivotValues[$pivotField] = array_get($inputArray, $pivotField, null);
+                $pivotValues[$pivotField] = Arr::get($inputArray, $pivotField, null);
 
             }
             $this->model->$hasManyKey()->attach($pk, $pivotValues);
@@ -583,7 +554,10 @@ class FoormDetail extends Foorm
 
     }
 
-    public function saveRelatedHasManyStandard($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
+    /*
+     * Salvataggio classico di has many con aggiunta/rimozione degli has many collegati al modello principale
+     */
+    public function saveRelatedHasMany($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
     {
 
         $hasManyModelName = $hasManyValue['modelName'];
@@ -593,7 +567,7 @@ class FoormDetail extends Foorm
         $statusKey = $this->getRelationConfig($hasManyKey,'status-key', 'status');
         $orderKey = $this->getRelationConfig($hasManyKey,'orderKey');
 
-        foreach (array_get($hasManyInputs, $pkName, []) as $i => $pk) {
+        foreach (Arr::get($hasManyInputs, $pkName, []) as $i => $pk) {
 
             $status = $hasManyInputs[$statusKey][$i];
 
@@ -626,7 +600,10 @@ class FoormDetail extends Foorm
                     $this->performCallbacksSaveRelatedOperation($hasManyKey,'afterUpdateCallbackMethods',$hasManyModel,$inputArray);
                     break;
                 case 'deleted':
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey,'beforeDeleteCallbackMethods',$hasManyModel,$inputArray);
                     $hasManyModelName::destroy($pk);
+                    //Questo non so se ha senso.
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey,'afterDeleteCallbackMethods',$hasManyModel,$inputArray);
                     break;
                 default:
                     throw new \Exception("Invalid status " . $status);
@@ -640,6 +617,15 @@ class FoormDetail extends Foorm
 
 
     //DA SISTEMARE E CAPIRE CHE CAVOLO ERA :)
+
+    //HO CAPITO: IN PRATICA QUESTO TIPO DI SALVATAGGIO E' UN PO' PARTICOLARE PERCHE'
+    //GESTISCE UN MODELLO HAS MANY IN CUI NON CREO/CANCELLO GLI ELEMENTI MA SEMPLICEMENTE
+    //GLI CAMBIO LA FOREIGN KEY.
+    //AD ESEMPIO SONO DENTRO UNA CATEGORIA "GESTIONE": GLI HAS MANY SONO DELLE PRATICHE:
+    //E CON L'HAS MANY VEDO TUTTE LE PARICHE DI QUESTA CATEGORIA
+    //SE LE "CANCELLO" DA QUI NON E' CHE CANCELLO LA PRATICA MA SEMPLICEMENTE GLI TOLGO LA CATEGORIA "GESTIONE"
+    //METTENDO A NULL LA FAOREIGN KEY.
+    //NON FREQUENTE MA HA SENSO: E' UN TIPO DI GESTIONE INVERSA DI UN BELONGSTO.
     public function saveRelatedHasManyAssociation($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
     {
 
@@ -647,7 +633,7 @@ class FoormDetail extends Foorm
         $hasManyModel = new $hasManyModelName();
         $pkName = $hasManyModel->getKeyName();
 
-        $hasManyModelForeignKey = array_get($hasManyValue, 'foreignKey');
+        $hasManyModelForeignKey = Arr::get($hasManyValue, 'foreignKey');
         $hasManyModelForeignKey = $hasManyModelForeignKey ?: $hasManyModel->getForeignKey();
 
 
@@ -656,7 +642,7 @@ class FoormDetail extends Foorm
             $hasManyModel->save();
         }
 
-        foreach (array_get($hasManyInputs, $pkName, []) as $i => $pk) {
+        foreach (Arr::get($hasManyInputs, $pkName, []) as $i => $pk) {
 
             $hasManyModel = $hasManyModelName::find($pk);
             $hasManyModel->$hasManyModelForeignKey = $this->model->getKey();
@@ -666,13 +652,19 @@ class FoormDetail extends Foorm
 
 
 
-    public function saveRelatedMorphManyStandard($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
+    public function saveRelatedMorphMany($hasManyKey, $hasManyValue, $hasManyInputs, $params = [])
     {
 
-        return $this->saveRelatedHasManyStandard($hasManyKey, $hasManyValue, $hasManyInputs, $params);
+        return $this->saveRelatedHasMany($hasManyKey, $hasManyValue, $hasManyInputs, $params);
 
     }
 
+    public function saveRelatedHasOne($hasManyKey, $hasManyValue, $hasManyInputs, $params = [])
+    {
+
+        return $this->saveRelatedHasMany($hasManyKey, $hasManyValue, $hasManyInputs, $params);
+
+    }
 
     protected function performCallbacksSaveRelatedOperation($relationKey, $callbacksType, $relationModel, $inputArray) {
 
@@ -687,20 +679,11 @@ class FoormDetail extends Foorm
     public function __call($name, $arguments)
     {
 
-
-        $aliases = array(
-            'saveRelatedHasOneStandard' => 'saveRelatedHasManyStandard',
-        );
-
-        if (in_array($name, array_keys($aliases))) {
-            return call_user_func_array(array($this, $aliases[$name]), $arguments);
-        }
-
         $hasManyPrefix = 'saveRelated';
         if (starts_with($name, $hasManyPrefix) && is_array($arguments)) {
 
             $suffix = studly_case($arguments[0]);
-            if (in_array($suffix, ['MorphManyAdd'])) {
+            if (in_array($suffix, ['BelongsTo','MorphManyAdd'])) {
                 return;
             }
 
