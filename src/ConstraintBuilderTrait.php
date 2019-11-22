@@ -28,6 +28,13 @@ trait ConstraintBuilderTrait
     {
 
         $studly_op = studly_case($op);
+
+        $methodName = 'buildSearchFilter' . $studly_op;
+
+        if (method_exists($this, $methodName)) {
+            return $this->$methodName($builder, $field, $value, $params);
+        }
+
         switch ($studly_op) {
             case 'Like':
                 return $builder->where($field, 'LIKE', '%' . $value . '%');
@@ -65,12 +72,6 @@ trait ConstraintBuilderTrait
                 }
                 return $builder->whereBetween($field, [$value1, $value2]);
             default:
-                $methodName = 'buildSearchFilter' . $studly_op;
-
-                if (method_exists($this, $methodName)) {
-                    return $this->$methodName($builder, $field, $value, $params);
-                }
-
                 return $builder->where($field, $op, $value);
         }
     }

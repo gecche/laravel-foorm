@@ -5,6 +5,7 @@ namespace Gecche\Foorm;
 use Gecche\Breeze\Breeze;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 
 class FormManager
 {
@@ -87,9 +88,9 @@ class FormManager
 
         $defaultConfig = config('foorm',[]);
 
-        $modelsNamespace = array_get($defaultConfig,'models_namespace',"App\\");
-        $foormsNamespace = array_get($defaultConfig,'foorms_namespace',"App\\Foorm\\");
-        $foormsDefaultsNamespace = array_get($defaultConfig,'foorms_defaults_namespace',"Gecche\\Foorm\\");
+        $modelsNamespace = Arr::get($defaultConfig,'models_namespace',"App\\");
+        $foormsNamespace = Arr::get($defaultConfig,'foorms_namespace',"App\\Foorm\\");
+        $foormsDefaultsNamespace = Arr::get($defaultConfig,'foorms_defaults_namespace',"Gecche\\Foorm\\");
 
         $formNameParts = explode('.',$this->formName);
         if (count($formNameParts) != 2) {
@@ -107,7 +108,7 @@ class FormManager
 
         $finalConfig = array_replace_recursive($defaultConfig,$formConfig);
 
-        $snakeModelName = array_get($formConfig,'model',$formNameParts[0]);
+        $snakeModelName = Arr::get($formConfig,'model',$formNameParts[0]);
 
 
         $relativeModelName = studly_case($snakeModelName);
@@ -117,7 +118,7 @@ class FormManager
             throw new \InvalidArgumentException("Model class $fullModelName does not exists");
 
 
-        $snakeFormName = array_get($formConfig,'form_type',$formNameParts[1]);
+        $snakeFormName = Arr::get($formConfig,'form_type',$formNameParts[1]);
         $relativeFormName = studly_case($snakeFormName);
         $fullFormName = $foormsNamespace . $relativeModelName . "\\" . $relativeFormName;
 
@@ -166,9 +167,9 @@ class FormManager
 
     protected function setModel() {
 
-        $fullModelName = array_get($this->config,'full_model_name');
+        $fullModelName = Arr::get($this->config,'full_model_name');
 
-        $id = array_get($this->params,'id');
+        $id = Arr::get($this->params,'id');
         if ($id) {
             $model = $fullModelName::find($id);
             if (!$model || !$model->getKey()) {
@@ -186,7 +187,7 @@ class FormManager
 
         $input = $this->setInputForForm($this->request->input());
 
-        $fullFormName = array_get($this->config,'full_form_name');
+        $fullFormName = Arr::get($this->config,'full_form_name');
 
         $this->form = new $fullFormName($this->config,$this->model,$input,$this->params);
 
@@ -210,12 +211,8 @@ class FormManager
         switch ($this->config['form_type']) {
 
             case 'list':
-                $input['pagination'] = [
-                    'page' => array_get($input,'page'),
-                    'per_page' => array_get($input,'per_page'),
-                ];
-                unset($input['page']);
-                unset($input['per_page']);
+                $input = $this->setInputForFormList($input);
+
                 return $input;
             default:
                 return $input;
@@ -226,6 +223,34 @@ class FormManager
     }
 
 
+    protected function setInputForFormList($input) {
+        $input['pagination'] = [
+            'page' => Arr::get($input,'page'),
+            'per_page' => Arr::get($input,'per_page'),
+        ];
+
+        $input['search_filters'] = [];
+        $searchInputs = preg_grep_keys('/^s_/', $input);
+
+        foreach ($searchInputs as $searchInputKey => $searchInputValue) {
+            unset($input[$searchInputKey]);
+            if (Str::endsWith($searchInputKey,'_operator')) {
+                continue;
+            }
+
+
+            $input['search_filters'][] = [
+                'field' => substr($searchInputKey,2),
+                'op' => Arr::get($searchInputs,$searchInputKey.'_operator','='),
+                'value' => $searchInputValue,
+            ];
+        }
+
+        unset($input['page']);
+        unset($input['per_page']);
+
+        return $input;
+    }
     /**
      * @return Breeze
      */

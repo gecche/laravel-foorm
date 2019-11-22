@@ -443,22 +443,25 @@ abstract class Foorm
 
     }
 
-    protected function setNullOption($fieldValue, $options, $hasNullOption, $defaultOptionsValues)
+    protected function setPredefinedOption($type ,$fieldValue, $options, $hasPredefinedOption, $defaultOptionsValues)
     {
 
-        if ($hasNullOption == 'onchoice' && count($options) <= 1) {
+        if (!in_array($type,['null','any','no'])) {
+            throw new \InvalidArgumentException("Predefined option not allowed");
+        }
+
+        if ($hasPredefinedOption == 'onchoice' && count($options) <= 1) {
             return $options;
         }
 
-        $nullLabel = array_get($fieldValue, 'null-label', $defaultOptionsValues['null-label']);
+        $predefinedLabel = array_get($fieldValue, $type.'-label', $defaultOptionsValues[$type.'-label']);
 
-        $nullOption = [$defaultOptionsValues['null-value'] =>
-            ucfirst(trans($nullLabel))];
+        $predefinedOption = [$defaultOptionsValues[$type.'-value'] =>
+            ucfirst(trans($predefinedLabel))];
 
-        return $nullOption + $options;
+        return $predefinedOption + $options;
 
     }
-
 
     protected function setFormMetadataFields() {
         $fields = array_get($this->config, 'fields');
@@ -471,6 +474,10 @@ abstract class Foorm
 
 
         $defaultOptionsValues = [
+            'any-value' => $this->config['any-value'],
+            'any-label' => $this->config['any-label'],
+            'no-value' => $this->config['no-value'],
+            'no-label' => $this->config['no-label'],
             'null-value' => $this->config['null-value'],
             'null-label' => $this->config['null-label'],
             'bool-false-value' => $this->config['bool-false-value'],
@@ -484,12 +491,21 @@ abstract class Foorm
                 $options = $this->createOptions($fieldKey, $fieldValue, $defaultOptionsValues);
 
                 $hasNullOption = array_get($fieldValue, 'nulloption', true);
-
                 if ($hasNullOption) {
-                    $options = $this->setNullOption($fieldValue, $options, $hasNullOption, $defaultOptionsValues);
+                    $options = $this->setPredefinedOption('null',$fieldValue, $options, $hasNullOption, $defaultOptionsValues);
                 }
 
-                $fieldValue['options'] = $options;
+                $hasAnyOption = array_get($fieldValue, 'anyoption', false);
+                if ($hasAnyOption) {
+                    $options = $this->setPredefinedOption('any', $fieldValue, $options, $hasNullOption, $defaultOptionsValues);
+                }
+                $hasNoOption = array_get($fieldValue, 'nooption', false);
+                if ($hasNoOption) {
+                    $options = $this->setPredefinedOption('no', $fieldValue, $options, $hasNullOption, $defaultOptionsValues);
+                }
+
+                $fieldValue['options'] = $options
+                ;
                 unset($fieldValue['nulloption']);
             }
 
