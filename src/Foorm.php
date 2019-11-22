@@ -9,11 +9,13 @@ use Gecche\DBHelper\Facades\DBHelper;
 use Gecche\Foorm\Contracts\ListBuilder;
 use Gecche\Breeze\Breeze;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 abstract class Foorm
 {
@@ -88,6 +90,8 @@ abstract class Foorm
         $this->model = $model;
         $this->params = $params;
         $this->config = $config;
+
+        $this->input = $this->filterPredefinedValuesFromInput($this->input);
 
 
         $this->dbHelper = DBHelper::helper($this->model->getConnectionName());
@@ -461,6 +465,51 @@ abstract class Foorm
 
         return $predefinedOption + $options;
 
+    }
+
+    protected function guessInputValue($value,$expected = 'string') {
+        if ($expected === 'array') {
+            return Arr::wrap($value);
+        }
+
+        if (is_string($value)) {
+            return $value;
+        }
+
+        if (is_array($value) && count($value) > 0) {
+            $value = current($value);
+            if ($value) {
+                return $value;
+            };
+        }
+
+        return null;
+
+    }
+
+
+    public function filterPredefinedValuesFromInput($value) {
+
+        $nullValue = $this->config['null-value'];
+        $anyValue = $this->config['any-value'];
+        $noValue = $this->config['no-value'];
+
+        if (is_string($value)) {
+          if (in_array($value,[$nullValue,$anyValue])) {
+            return null;
+          } elseif (in_array($value,[$noValue])) {
+              return 'no-value';
+          }
+          return $value;
+        }
+
+        if (is_array($value)) {
+            foreach ($value as $valuePartKey => $valuePart) {
+                $value[$valuePartKey] = $this->filterPredefinedValuesFromInput($valuePart);
+            }
+        }
+
+        return $value;
     }
 
     protected function setFormMetadataFields() {

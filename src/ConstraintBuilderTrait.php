@@ -4,6 +4,7 @@ namespace Gecche\Foorm;
 
 use Carbon\Carbon;
 use Gecche\Breeze\Breeze;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Config;
@@ -37,8 +38,16 @@ trait ConstraintBuilderTrait
 
         switch ($studly_op) {
             case 'Like':
+                $value = $this->guessInputValue($value);
+                if (is_null($value)) {
+                    return $builder;
+                }
                 return $builder->where($field, 'LIKE', '%' . $value . '%');
             case 'Date':
+                $value = $this->guessInputValue($value);
+                if (is_null($value)) {
+                    return $builder;
+                }
                 return $builder->where($field, '>=', $value . ' 00:00:00')
                     ->where($field, '<=', $value . ' 23:59:59');
             case 'IsNull':
@@ -47,11 +56,9 @@ trait ConstraintBuilderTrait
                 return $builder->whereNotNull($field);
             case 'In':
             case 'NotIn':
+                $value = $this->guessInputValue($value,'array');
                 if (empty($value)) {
-                    $value = array(-1);
-                }
-                if (!is_array($value)) {
-                    $value = array($value);
+                    $value = [$this->config['null-value']];
                 }
                 if ($studly_op == 'In') {
                     return $builder->whereIn($field, $value);
@@ -59,11 +66,9 @@ trait ConstraintBuilderTrait
                     return $builder->whereNotIn($field, $value);
                 }
             case 'Between':
-                if (!is_array($value)) {
-                    return $builder;
-                }
-                $value1 = array_get($value, 0);
-                $value2 = array_get($value, 1);
+                $value = $this->guessInputValue($value,'array');
+                $value1 = Arr::get($value, 0);
+                $value2 = Arr::get($value, 1);
                 if (!$value2) {
                     return $builder->where($field, '>=', $value1);
                 }
@@ -72,6 +77,13 @@ trait ConstraintBuilderTrait
                 }
                 return $builder->whereBetween($field, [$value1, $value2]);
             default:
+                $value = $this->guessInputValue($value);
+                if (is_null($value)) {
+                    return $builder;
+                }
+                if ($value == $this->config['no-value']) {
+                    return $builder->whereNull($field);
+                }
                 return $builder->where($field, $op, $value);
         }
     }
@@ -83,12 +95,10 @@ trait ConstraintBuilderTrait
     public function buildConstraintDateIn($builder, $field, $value, $params = [])
     {
 
-        if (!is_array($value)) {
-            throw new \InvalidArgumentException("The value for a date_in constraint should be an array of dates");
-        }
+        $value = $this->guessInputValue($value,'array');
 
-        $firstValue = array_get($value, 0, false);
-        $secondValue = array_get($value, 1, false);
+        $firstValue = Arr::get($value, 0, false);
+        $secondValue = Arr::get($value, 1, false);
         $invalidInterval = false;
         if (!$firstValue && !$secondValue) {
             $invalidInterval = true;
@@ -135,13 +145,14 @@ trait ConstraintBuilderTrait
      */
     public function buildConstraintDateIntersection($builder, $field, $value, $params = [])
     {
+        $value = $this->guessInputValue($value,'array');
 
         if (!is_array($value)) {
             throw new \InvalidArgumentException("The value for a date_intersection constraint should be an array of two dates");
         }
 
-        $firstValue = array_get($value, 0, false);
-        $secondValue = array_get($value, 1, false);
+        $firstValue = Arr::get($value, 0, false);
+        $secondValue = Arr::get($value, 1, false);
         if (!$firstValue || !$secondValue) {
             throw new \InvalidArgumentException("The value for a date_intersection constraint should be an array of two dates");
         }
@@ -155,7 +166,7 @@ trait ConstraintBuilderTrait
             throw new \InvalidArgumentException("The value for a date_intersection constraint should be an array of two dates");
         }
 
-        $endField = array_get($params, 'end_date_field', false);
+        $endField = Arr::get($params, 'end_date_field', false);
         if (!$endField) {
             throw new \InvalidArgumentException("The date_intersection constraint expect an 'end_date_field' as a param.");
         }
@@ -184,7 +195,7 @@ trait ConstraintBuilderTrait
     public function buildSearchFilterDatatable($builder, $field, $value, $params = [])
     {
 
-        $searchFields = array_get($params, 'datatable_fields', []);
+        $searchFields = Arr::get($params, 'datatable_fields', []);
         if (!is_array($searchFields)) {
             return $builder;
         }
@@ -209,13 +220,20 @@ trait ConstraintBuilderTrait
 
         $studly_op = studly_case($op);
 
+        $methodName = 'buildSearchFilterRelation' . $studly_op;
+
+        if (method_exists($this, $methodName)) {
+            return $this->$methodName($builder, $field, $value, $params);
+        }
 
         switch ($studly_op) {
             case 'Like':
+                $value = $this->guessInputValue($value);
                 return $builder->whereHas($relation, function ($q) use ($field, $value) {
                     $q->where($field, 'LIKE', '%' . $value . '%');
                 });
             case 'Date':
+                $value = $this->guessInputValue($value);
                 return $builder->whereHas($relation, function ($q) use ($field, $value) {
                     $q->where($field, '>=', $value . ' 00:00:00')
                         ->where($field, '<=', $value . ' 23:59:59');
@@ -230,11 +248,9 @@ trait ConstraintBuilderTrait
                 });
             case 'In':
             case 'NotIn':
+                $value = $this->guessInputValue($value,'array');
                 if (empty($value)) {
-                    $value = array(-1);
-                }
-                if (!is_array($value)) {
-                    $value = array($value);
+                    $value = [$this->config['null-value']];
                 }
                 if ($studly_op == 'In') {
                     return $builder->whereHas($relation, function ($q) use ($field, $value) {
@@ -246,11 +262,9 @@ trait ConstraintBuilderTrait
                     });
                 }
             case 'Between':
-                if (!is_array($value)) {
-                    return $builder;
-                }
-                $value1 = array_get($value, 0, false);
-                $value2 = array_get($value, 1, false);
+                $value = $this->guessInputValue($value,'array');
+                $value1 = Arr::get($value, 0, false);
+                $value2 = Arr::get($value, 1, false);
                 if (!$value2) {
                     return $builder->whereHas($relation, function ($q) use ($field, $value1) {
                         $q->where($field, '>=', $value1);
@@ -265,12 +279,13 @@ trait ConstraintBuilderTrait
                     $q->whereBetween($field, [$value1, $value2]);
                 });
             default:
-                $methodName = 'buildSearchFilterRelation' . $studly_op;
 
-                if (method_exists($this, $methodName)) {
-                    return $this->$methodName($builder, $field, $value, $params);
+                $value = $this->guessInputValue($value);
+                if ($value == $this->config['no-value']) {
+                    return $builder->whereHas($relation, function ($q) use ($field) {
+                        $q->whereNotNull($field);
+                    });
                 }
-
                 return $builder->whereHas($relation, function ($q) use ($field, $value, $op) {
                     $q->where($field, $op, $value);
                 });
@@ -283,12 +298,10 @@ trait ConstraintBuilderTrait
     public function buildConstraintRelationDateIn($relation, $builder, $field, $value, $params = [])
     {
 
-        if (!is_array($value)) {
-            throw new \InvalidArgumentException("The value for a date_in constraint should be an array of dates");
-        }
+        $value = $this->guessInputValue($value,'array');
 
-        $firstValue = array_get($value, 0, false);
-        $secondValue = array_get($value, 1, false);
+        $firstValue = Arr::get($value, 0, false);
+        $secondValue = Arr::get($value, 1, false);
         $invalidInterval = false;
         if (!$firstValue && !$secondValue) {
             $invalidInterval = true;
@@ -344,12 +357,10 @@ trait ConstraintBuilderTrait
     public function buildConstraintRelationDateIntersection($relation, $builder, $field, $value, $params = [])
     {
 
-        if (!is_array($value)) {
-            throw new \InvalidArgumentException("The value for a date_intersection constraint should be an array of two dates");
-        }
+        $value = $this->guessInputValue($value,'array');
 
-        $firstValue = array_get($value, 0, false);
-        $secondValue = array_get($value, 1, false);
+        $firstValue = Arr::get($value, 0, false);
+        $secondValue = Arr::get($value, 1, false);
         if (!$firstValue || !$secondValue) {
             throw new \InvalidArgumentException("The value for a date_intersection constraint should be an array of two dates");
         }
@@ -363,7 +374,7 @@ trait ConstraintBuilderTrait
             throw new \InvalidArgumentException("The value for a date_intersection constraint should be an array of two dates");
         }
 
-        $endField = array_get($params, 'end_date_field', false);
+        $endField = Arr::get($params, 'end_date_field', false);
         if (!$endField) {
             throw new \InvalidArgumentException("The date_intersection constraint expect an 'end_date_field' as a param.");
         }

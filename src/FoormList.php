@@ -157,6 +157,8 @@ class FoormList extends Foorm
     }
 
 
+
+
     protected function applySearchFilters()
     {
         $searchFilters = array_get($this->input, 'search_filters', []);
