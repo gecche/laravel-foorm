@@ -376,6 +376,9 @@ abstract class Foorm
 
         $relationFieldsToUnset = [
             'modelRelativeName',
+            'modelName',
+            'relationName',
+            'relationType',
             'saveType',
             'saveParams',
             'pivotFields',
