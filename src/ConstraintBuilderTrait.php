@@ -32,22 +32,30 @@ trait ConstraintBuilderTrait
 
         $methodName = 'buildSearchFilter' . $studly_op;
 
+        //Se esiste il metodo specifico lo chiamo
         if (method_exists($this, $methodName)) {
             return $this->$methodName($builder, $field, $value, $params);
         }
 
+        //vado per gli operatori standard
+
+        //Se il value reale ipotizzato è null
+        //suppongo che l'utente non abbia valorizzato il campo e vado avanti
+        //se è un no-value allora impongo che il campo sia null
+        $expected = in_array($studly_op,['Between','In','NotIn']) ? 'array' : 'string';
+        $value = $this->guessInputValue($value,$expected);
+        if (is_null($value)) {
+            return $builder;
+        }
+        if ($value == $this->config['no-value']) {
+            return $builder->whereNull($field);
+        }
+
+
         switch ($studly_op) {
             case 'Like':
-                $value = $this->guessInputValue($value);
-                if (is_null($value)) {
-                    return $builder;
-                }
                 return $builder->where($field, 'LIKE', '%' . $value . '%');
             case 'Date':
-                $value = $this->guessInputValue($value);
-                if (is_null($value)) {
-                    return $builder;
-                }
                 return $builder->where($field, '>=', $value . ' 00:00:00')
                     ->where($field, '<=', $value . ' 23:59:59');
             case 'IsNull':
@@ -56,7 +64,6 @@ trait ConstraintBuilderTrait
                 return $builder->whereNotNull($field);
             case 'In':
             case 'NotIn':
-                $value = $this->guessInputValue($value,'array');
                 if (empty($value)) {
                     $value = [$this->config['null-value']];
                 }
@@ -66,9 +73,8 @@ trait ConstraintBuilderTrait
                     return $builder->whereNotIn($field, $value);
                 }
             case 'Between':
-                $value = $this->guessInputValue($value,'array');
-                $value1 = Arr::get($value, 0);
-                $value2 = Arr::get($value, 1);
+                $value1 = Arr::get($value, 0, false);
+                $value2 = Arr::get($value, 1, false);
                 if (!$value2) {
                     return $builder->where($field, '>=', $value1);
                 }
@@ -77,13 +83,7 @@ trait ConstraintBuilderTrait
                 }
                 return $builder->whereBetween($field, [$value1, $value2]);
             default:
-                $value = $this->guessInputValue($value);
-                if (is_null($value)) {
-                    return $builder;
-                }
-                if ($value == $this->config['no-value']) {
-                    return $builder->whereNull($field);
-                }
+
                 return $builder->where($field, $op, $value);
         }
     }
@@ -95,7 +95,17 @@ trait ConstraintBuilderTrait
     public function buildConstraintDateIn($builder, $field, $value, $params = [])
     {
 
-        $value = $this->guessInputValue($value,'array');
+        $value = $this->guessInputValue($value, 'array');
+        //Se il value reale ipotizzato è null
+        //suppongo che l'utente non abbia valorizzato il campo e vado avanti
+        //se è un no-value allora impongo che il campo sia null
+        if (is_null($value)) {
+            return $builder;
+        }
+        if ($value == $this->config['no-value']) {
+            return $builder->whereNull($field);
+        }
+
 
         $firstValue = Arr::get($value, 0, false);
         $secondValue = Arr::get($value, 1, false);
@@ -145,10 +155,15 @@ trait ConstraintBuilderTrait
      */
     public function buildConstraintDateIntersection($builder, $field, $value, $params = [])
     {
-        $value = $this->guessInputValue($value,'array');
-
-        if (!is_array($value)) {
-            throw new \InvalidArgumentException("The value for a date_intersection constraint should be an array of two dates");
+        $value = $this->guessInputValue($value, 'array');
+        //Se il value reale ipotizzato è null
+        //suppongo che l'utente non abbia valorizzato il campo e vado avanti
+        //se è un no-value allora impongo che il campo sia null
+        if (is_null($value)) {
+            return $builder;
+        }
+        if ($value == $this->config['no-value']) {
+            return $builder->whereNull($field);
         }
 
         $firstValue = Arr::get($value, 0, false);
@@ -189,30 +204,7 @@ trait ConstraintBuilderTrait
 
     }
 
-    /*
-     * Constraint for handling the jquery datatable search standard format
-     */
-    public function buildSearchFilterDatatable($builder, $field, $value, $params = [])
-    {
 
-        $searchFields = Arr::get($params, 'datatable_fields', []);
-        if (!is_array($searchFields)) {
-            return $builder;
-        }
-
-
-        $value = is_array($value) ? $value[0] : $value;
-
-
-        $builder->where(function ($query) use ($value, $searchFields) {
-            foreach ($searchFields as $searchField) {
-                $query->orWhere($searchField, 'LIKE', '%' . $value . '%');
-            }
-        });
-
-        return $builder;
-
-    }
 
 
     public function buildConstraintRelation($relation, $builder, $field, $value, $op = '=', $params = [])
@@ -226,14 +218,28 @@ trait ConstraintBuilderTrait
             return $this->$methodName($builder, $field, $value, $params);
         }
 
+        //vado per gli operatori standard
+
+        //Se il value reale ipotizzato è null
+        //suppongo che l'utente non abbia valorizzato il campo e vado avanti
+        //se è un no-value allora impongo che il campo sia null
+        $expected = in_array($studly_op,['Between','In','NotIn']) ? 'array' : 'string';
+        $value = $this->guessInputValue($value,$expected);
+        if (is_null($value)) {
+            return $builder;
+        }
+        if ($value == $this->config['no-value']) {
+            return $builder->whereHas($relation, function ($q) use ($field) {
+                $q->whereNotNull($field);
+            });
+        }
+
         switch ($studly_op) {
             case 'Like':
-                $value = $this->guessInputValue($value);
                 return $builder->whereHas($relation, function ($q) use ($field, $value) {
                     $q->where($field, 'LIKE', '%' . $value . '%');
                 });
             case 'Date':
-                $value = $this->guessInputValue($value);
                 return $builder->whereHas($relation, function ($q) use ($field, $value) {
                     $q->where($field, '>=', $value . ' 00:00:00')
                         ->where($field, '<=', $value . ' 23:59:59');
@@ -248,7 +254,6 @@ trait ConstraintBuilderTrait
                 });
             case 'In':
             case 'NotIn':
-                $value = $this->guessInputValue($value,'array');
                 if (empty($value)) {
                     $value = [$this->config['null-value']];
                 }
@@ -262,7 +267,6 @@ trait ConstraintBuilderTrait
                     });
                 }
             case 'Between':
-                $value = $this->guessInputValue($value,'array');
                 $value1 = Arr::get($value, 0, false);
                 $value2 = Arr::get($value, 1, false);
                 if (!$value2) {
@@ -280,12 +284,6 @@ trait ConstraintBuilderTrait
                 });
             default:
 
-                $value = $this->guessInputValue($value);
-                if ($value == $this->config['no-value']) {
-                    return $builder->whereHas($relation, function ($q) use ($field) {
-                        $q->whereNotNull($field);
-                    });
-                }
                 return $builder->whereHas($relation, function ($q) use ($field, $value, $op) {
                     $q->where($field, $op, $value);
                 });
@@ -298,7 +296,15 @@ trait ConstraintBuilderTrait
     public function buildConstraintRelationDateIn($relation, $builder, $field, $value, $params = [])
     {
 
-        $value = $this->guessInputValue($value,'array');
+        $value = $this->guessInputValue($value, 'array');
+        if (is_null($value)) {
+            return $builder;
+        }
+        if ($value == $this->config['no-value']) {
+            return $builder->whereHas($relation, function ($q) use ($field) {
+                $q->whereNotNull($field);
+            });
+        }
 
         $firstValue = Arr::get($value, 0, false);
         $secondValue = Arr::get($value, 1, false);
@@ -357,7 +363,15 @@ trait ConstraintBuilderTrait
     public function buildConstraintRelationDateIntersection($relation, $builder, $field, $value, $params = [])
     {
 
-        $value = $this->guessInputValue($value,'array');
+        $value = $this->guessInputValue($value, 'array');
+        if (is_null($value)) {
+            return $builder;
+        }
+        if ($value == $this->config['no-value']) {
+            return $builder->whereHas($relation, function ($q) use ($field) {
+                $q->whereNotNull($field);
+            });
+        }
 
         $firstValue = Arr::get($value, 0, false);
         $secondValue = Arr::get($value, 1, false);
@@ -396,6 +410,33 @@ trait ConstraintBuilderTrait
         });
 
         return $resultQuery;
+
+    }
+
+
+    /*
+    * Constraint for handling the jquery datatable search standard format
+    * Questo è tutto da rivedere perché bisogna vedere come funziona datatable era una cosa particolare.
+    */
+    public function buildSearchFilterDatatable($builder, $field, $value, $params = [])
+    {
+
+        $searchFields = Arr::get($params, 'datatable_fields', []);
+        if (!is_array($searchFields)) {
+            return $builder;
+        }
+
+
+        $value = is_array($value) ? $value[0] : $value;
+
+
+        $builder->where(function ($query) use ($value, $searchFields) {
+            foreach ($searchFields as $searchField) {
+                $query->orWhere($searchField, 'LIKE', '%' . $value . '%');
+            }
+        });
+
+        return $builder;
 
     }
 

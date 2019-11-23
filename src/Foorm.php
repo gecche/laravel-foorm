@@ -467,9 +467,22 @@ abstract class Foorm
 
     }
 
+    //Metodo per provare a capire cosa abbia inserito l'utente in particolare per i campi non valorizzati
+    //Mi posso aspettare string o array
+    //Nel caso di string, se il campo è vuoto o è un array con il primo elemento vuoto ritorno null
+    //Nel caso di array se è vuoto o se tutti gli elementi sono null ritorno null, se c'è un no-value ritorno no-value
     protected function guessInputValue($value,$expected = 'string') {
         if ($expected === 'array') {
-            return Arr::wrap($value);
+            $value = Arr::wrap($value);
+            foreach ($value as $valuePart) {
+                if ($valuePart == $this->config['no-value']) {
+                    return $this->config['no-value'];
+                }
+                if ($valuePart) {
+                    return $value;
+                }
+            }
+            return null;
         }
 
         if (is_string($value)) {
