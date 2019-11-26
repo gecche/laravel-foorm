@@ -23,6 +23,9 @@ class FormManager
     /**
      * @var array
      */
+
+    protected $defaultConfig;
+
     protected $config;
 
     protected $model;
@@ -40,12 +43,13 @@ class FormManager
      * @param Breeze $model
      * @param array $params
      */
-    public function __construct($formName,Request $request,$params = [])
+    public function __construct($formName, Request $request, $params = [])
     {
 
         $this->formName = $formName;
         $this->request = $request;
         $this->params = $params;
+        $this->setDefaultConfig();
         $this->getConfig();
         $this->setModel();
 
@@ -69,83 +73,73 @@ class FormManager
     }
 
 
+    protected function fallbackFormName($formName)
+    {
+        $formNameParts = explode('.', $this->formName);
 
-    protected function fallbackFormName($formName) {
-        $formNameParts = explode('.',$this->formName);
+        $formType = Arr::get($formNameParts, 1, '');
 
-        $formType = Arr::get($formNameParts,1,'');
-
-        $formTypeFallbacks = config('foorm.types_fallbacks',[]);
-        if (!Arr::get($formTypeFallbacks,$formType)) {
+        $formTypeFallbacks = config('foorm.types_fallbacks', []);
+        if (!Arr::get($formTypeFallbacks, $formType)) {
             return $formName;
         }
 
-        return $formNameParts[0].'.'.  $formTypeFallbacks[$formType];
+        return $formNameParts[0] . '.' . $formTypeFallbacks[$formType];
 
     }
 
-    public function getConfig() {
 
-        $defaultConfig = config('foorm',[]);
+    public function setDefaultConfig($defaultConfig = null)
+    {
 
-        $modelsNamespace = Arr::get($defaultConfig,'models_namespace',"App\\");
-        $foormsNamespace = Arr::get($defaultConfig,'foorms_namespace',"App\\Foorm\\");
-        $foormsDefaultsNamespace = Arr::get($defaultConfig,'foorms_defaults_namespace',"Gecche\\Foorm\\");
 
-        $formNameParts = explode('.',$this->formName);
+        if (is_null($defaultConfig)) {
+            $defaultConfig = config('foorm', []);
+        }
+
+        $defaultConfig['models_namespace'] = Arr::get($defaultConfig, 'models_namespace', "App\\");
+        $defaultConfig['foorms_namespace'] = Arr::get($defaultConfig, 'foorms_namespace', "App\\Foorm\\");
+        $defaultConfig['foorms_defaults_namespace'] = Arr::get($defaultConfig, 'foorms_defaults_namespace', "Gecche\\Foorm\\");
+
+        $this->defaultConfig = $defaultConfig;
+
+    }
+
+    public function getConfig()
+    {
+
+        $defaultConfig = $this->defaultConfig;
+
+        $formNameParts = explode('.', $this->formName);
         if (count($formNameParts) != 2) {
             throw new \InvalidArgumentException('A foorm name should be of type "<FORMNAME>.<FORMTYPE>".');
         }
 
-        $formConfig = config('foorms.'.$this->formName,false);
+        $formConfig = $this->getFormTypeConfig($this->formName);
 
-        if (!is_array($formConfig)) {
-            $formConfig = config('foorms.'.$this->fallbackFormName($this->formName),false);
-            if (!is_array($formConfig)) {
-                throw new \InvalidArgumentException('Configuration of foorm ' . $this->formName . ' not found');
-            }
-        }
+        $finalConfig = array_replace_recursive($defaultConfig, $formConfig);
 
-        $finalConfig = array_replace_recursive($defaultConfig,$formConfig);
-
-        $snakeModelName = Arr::get($formConfig,'model',$formNameParts[0]);
+        $snakeModelName = Arr::get($formConfig, 'model', $formNameParts[0]);
 
 
         $relativeModelName = studly_case($snakeModelName);
-        $fullModelName = $modelsNamespace . $relativeModelName;
+        $fullModelName = $this->defaultConfig['models_namespace'] . $relativeModelName;
 
         if (!class_exists($fullModelName))
             throw new \InvalidArgumentException("Model class $fullModelName does not exists");
 
 
-        $snakeFormName = Arr::get($formConfig,'form_type',$formNameParts[1]);
-        $relativeFormName = studly_case($snakeFormName);
-        $fullFormName = $foormsNamespace . $relativeModelName . "\\" . $relativeFormName;
-
-
-        if (!class_exists($fullFormName)) {//Example: exists App\Foorm\User\List class?
-
-            $fullFormName = $foormsNamespace . $relativeFormName;
-            if (!class_exists($fullFormName)) {//Example: exists App\Foorm\List class?
-                $fullFormName = $foormsDefaultsNamespace . 'Foorm'. $relativeFormName;
-
-                if (!class_exists($fullFormName)) {//Example: exists Gecche\Foorm\List class?
-                    throw new \InvalidArgumentException("Form class not found");
-                }
-
-            }
-
-        }
+        $finalConfig = array_merge($finalConfig,$this->getRealFoormClass($formConfig, $relativeModelName, $formNameParts[1]));
 
         $finalConfig['model'] = $snakeModelName;
-        $finalConfig['form_type'] = $snakeFormName;
-        $finalConfig['models_namespace'] = $modelsNamespace;
-        $finalConfig['foorms_namespace'] = $foormsNamespace;
-        $finalConfig['foorms_default_namespace'] = $foormsDefaultsNamespace;
-        $finalConfig['relative_form_name'] = $relativeFormName;
         $finalConfig['relative_model_name'] = $relativeModelName;
-        $finalConfig['full_form_name'] = $fullFormName;
         $finalConfig['full_model_name'] = $fullModelName;
+
+        foreach (Arr::get($formConfig,'dependencies',[]) as $dependencyKey => $dependencyFormType) {
+            $dependencyConfig = $this->getFormTypeConfig($formNameParts[0].'.'.$dependencyFormType);
+            $dependencyConfig = array_merge($dependencyConfig,$this->getRealFoormClass($formConfig, $relativeModelName, $dependencyFormType));
+            $finalConfig['dependencies'][$dependencyKey] = $dependencyConfig;
+        }
 
         $this->config = $finalConfig;
 
@@ -154,7 +148,47 @@ class FormManager
     }
 
 
+    protected function getFormTypeConfig($formName) {
+        $formConfig = config('foorms.' . $formName, false);
 
+        if (!is_array($formConfig)) {
+            $formConfig = config('foorms.' . $this->fallbackFormName($formName), false);
+            if (!is_array($formConfig)) {
+                throw new \InvalidArgumentException('Configuration of foorm ' . $formName . ' not found');
+            }
+        }
+
+        return $formConfig;
+    }
+
+    protected function getRealFoormClass($formConfig, $relativeModelName, $formNameToCheck)
+    {
+        $snakeFormName = Arr::get($formConfig, 'form_type', $formNameToCheck);
+        $relativeFormName = studly_case($snakeFormName);
+        $fullFormName = $this->defaultConfig['foorms_namespace'] . $relativeModelName . "\\" . $relativeFormName;
+
+
+        if (!class_exists($fullFormName)) {//Example: exists App\Foorm\User\List class?
+
+            $fullFormName = $this->defaultConfig['foorms_namespace'] . $relativeFormName;
+            if (!class_exists($fullFormName)) {//Example: exists App\Foorm\List class?
+                $fullFormName = $this->defaultConfig['foorms_defaults_namespace'] . 'Foorm' . $relativeFormName;
+
+                if (!class_exists($fullFormName)) {//Example: exists Gecche\Foorm\List class?
+                    throw new \InvalidArgumentException("Foorm class not found");
+                }
+
+            }
+
+        }
+
+        return [
+            'form_type' => $snakeFormName,
+            'relative_form_name' => $relativeFormName,
+            'full_form_name' => $fullFormName,
+        ];
+
+    }
 
     /**
      * @param array $config
@@ -165,11 +199,12 @@ class FormManager
     }
 
 
-    protected function setModel() {
+    protected function setModel()
+    {
 
-        $fullModelName = Arr::get($this->config,'full_model_name');
+        $fullModelName = Arr::get($this->config, 'full_model_name');
 
-        $id = Arr::get($this->params,'id');
+        $id = Arr::get($this->params, 'id');
         if ($id) {
             $model = $fullModelName::find($id);
             if (!$model || !$model->getKey()) {
@@ -182,23 +217,37 @@ class FormManager
         $this->model = $model;
     }
 
-    protected function setForm() {
+    protected function setForm()
+    {
 
 
         $input = $this->setInputForForm($this->request->input());
 
-        $fullFormName = Arr::get($this->config,'full_form_name');
+        $fullFormName = Arr::get($this->config, 'full_form_name');
 
-        $this->form = new $fullFormName($this->config,$this->model,$input,$this->params);
+
+
+        $this->form = new $fullFormName($this->config, $this->model, $input, $this->params);
+
+        $dependentForms = [];
+
+        foreach (Arr::get($this->config,'dependencies',[]) as $dependencyKey => $dependencyConfig) {
+            $dependentFormName =  Arr::get($dependencyConfig, 'full_form_name');
+            $dependentForms[$dependencyKey] = new $dependentFormName($dependencyConfig, $this->model, $input, $this->params);
+        }
+
+        $this->form->setDependentForms($dependentForms);
 
     }
 
 
-    public function setInputManipulationFunction(\Closure $closure) {
+    public function setInputManipulationFunction(\Closure $closure)
+    {
         $this->inputManipulationFunction = $closure;
     }
 
-    protected function setInputForForm($input) {
+    protected function setInputForForm($input)
+    {
 
 
         $inputManipulationFunction = $this->inputManipulationFunction;
@@ -223,10 +272,11 @@ class FormManager
     }
 
 
-    protected function setInputForFormList($input) {
+    protected function setInputForFormList($input)
+    {
         $input['pagination'] = [
-            'page' => Arr::get($input,'page'),
-            'per_page' => Arr::get($input,'per_page'),
+            'page' => Arr::get($input, 'page'),
+            'per_page' => Arr::get($input, 'per_page'),
         ];
 
         $input['search_filters'] = [];
@@ -234,14 +284,14 @@ class FormManager
 
         foreach ($searchInputs as $searchInputKey => $searchInputValue) {
             unset($input[$searchInputKey]);
-            if (Str::endsWith($searchInputKey,'_operator')) {
+            if (Str::endsWith($searchInputKey, '_operator')) {
                 continue;
             }
 
 
             $input['search_filters'][] = [
-                'field' => substr($searchInputKey,2),
-                'op' => Arr::get($searchInputs,$searchInputKey.'_operator','='),
+                'field' => substr($searchInputKey, 2),
+                'op' => Arr::get($searchInputs, $searchInputKey . '_operator', '='),
                 'value' => $searchInputValue,
             ];
         }
@@ -251,6 +301,7 @@ class FormManager
 
         return $input;
     }
+
     /**
      * @return Breeze
      */
@@ -277,8 +328,6 @@ class FormManager
         }
         return $this->form;
     }
-
-
 
 
 }

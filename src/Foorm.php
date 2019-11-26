@@ -77,6 +77,8 @@ abstract class Foorm
      */
     protected $dbHelper;
 
+    protected $dependentForms = null;
+
     /**
      * FormList constructor.
      * @param array $input
@@ -116,6 +118,24 @@ abstract class Foorm
     {
         $this->config = array_merge($this->config, $config);
     }
+
+    /**
+     * @return null
+     */
+    public function getDependentForms()
+    {
+        return $this->dependentForms;
+    }
+
+    /**
+     * @param null $dependentForms
+     */
+    public function setDependentForms($dependentForms)
+    {
+        $this->dependentForms = $dependentForms;
+    }
+
+
 
 
     public function getModelsNamespace()
