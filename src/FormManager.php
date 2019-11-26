@@ -296,6 +296,29 @@ class FormManager
             ];
         }
 
+        if (array_key_exists('order_field',$input)) {
+            $input['order_params'] = [
+                'field' => $input['order_field'],
+                'direction' => strtoupper(Arr::get($input,'order_direction','ASC')),
+            ];
+            unset($input['order_field']);
+            unset($input['order_direction']);
+        }
+
+        foreach ($searchInputs as $searchInputKey => $searchInputValue) {
+            unset($input[$searchInputKey]);
+            if (Str::endsWith($searchInputKey, '_operator')) {
+                continue;
+            }
+
+
+            $input['search_filters'][] = [
+                'field' => substr($searchInputKey, 2),
+                'op' => Arr::get($searchInputs, $searchInputKey . '_operator', '='),
+                'value' => $searchInputValue,
+            ];
+        }
+
         unset($input['page']);
         unset($input['per_page']);
 
