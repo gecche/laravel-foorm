@@ -546,7 +546,7 @@ abstract class Foorm
     }
 
     protected function setFormMetadataFields() {
-        $fields = array_get($this->config, 'fields');
+        $fields = array_get($this->config, 'fields', []);
         $this->formMetadata['fields'] = $this->_setFormMetadataFields($fields);
 
         return $fields;
