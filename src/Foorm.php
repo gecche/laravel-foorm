@@ -95,8 +95,8 @@ abstract class Foorm
 
         $this->input = $this->filterPredefinedValuesFromInput($this->input);
 
-
         $this->dbHelper = DBHelper::helper($this->model->getConnectionName());
+
 
         $this->prepareRelationsData();
 
@@ -180,7 +180,7 @@ abstract class Foorm
      */
     public function getModelRelativeName()
     {
-        return $this->modelRelativeName;
+        return array_get($this->config,'relative_model_name');
     }
 
     /**
@@ -399,7 +399,7 @@ abstract class Foorm
     public function cleanMetadata($metadata) {
 
         $relationFieldsToUnset = [
-            'modelRelativeName',
+            //'modelRelativeName',
             'modelName',
             'relationName',
             'relationType',
