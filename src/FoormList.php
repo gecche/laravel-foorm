@@ -36,9 +36,6 @@ class FoormList extends Foorm
 
     protected $listOrder;
 
-    protected $paginateSelect;
-
-
     /**
      * @var Builder|null
      */
@@ -214,11 +211,6 @@ class FoormList extends Foorm
     }
 
 
-    public function setPaginateSelect(array $paginateSelect)
-    {
-        $this->paginateSelect = $paginateSelect;
-    }
-
     protected function paginateList()
     {
 
@@ -232,29 +224,18 @@ class FoormList extends Foorm
 
         $page = array_get($paginationInput, 'page', 1);
 
-        $paginateSelect = is_array($this->paginateSelect)
+        $paginateSelect = is_array(Arr::get($this->config,'paginate_select',false))
             ? $this->paginateSelect
-            : [$this->model->getTable() . ".*"];
+            : ["*"];
 
-        $configFields = array_keys(Arr::get($this->config,'fields',[]));
-
-        /*
-         * QUESTO NON SO BENE COME FUNZIONI SULLE RELAZIONI
-         */
-//        $prefixedConfigFields = $this->array_key_append($configFields, $this->model->getTable() . ".", false);
-//
-//        $paginateSelect = is_array($this->paginateSelect)
-//            ? $this->paginateSelect
-//            : $prefixedConfigFields;
 
         if ($perPage < 0) {
             //No pagination: set a fixed big value in order to have the same output structure
             $perPage = array_get($this->config, 'no_paginate_value', 1000000);
         }
 
-        Log::info("QUERYLIST::: ".$this->formBuilder->toSql());
+//        Log::info("QUERYLIST::: ".$this->formBuilder->toSql());
 
-//      $this->summaryResult = $this->formBuilder;
         $this->formBuilder = $this->formBuilder->paginate($perPage, $paginateSelect, 'page', $page);
 
 
@@ -279,10 +260,37 @@ class FoormList extends Foorm
 
     protected function finalizeDataStandard()
     {
+
+        $this->filterFieldsFromConfig();
+
         $arrayData = $this->formBuilder->toArray();
 
-
         return $arrayData;
+    }
+
+    protected function filterFieldsFromConfig() {
+        $configFields = array_keys(Arr::get($this->config,'fields',[]));
+        foreach (Arr::get($this->config,'relations',[]) as $relationName => $relationValue) {
+
+            $configRelationFields = Arr::get($relationValue,'fields',[]);
+            $configRelationFields = array_key_append($configRelationFields,$relationName.'.',false);
+            $configRelationFields = array_keys($configRelationFields);
+
+            $configFields = array_merge($configFields,$configRelationFields);
+        }
+
+
+        $collection = $this->formBuilder->getCollection();
+
+// build your second collection with a subset of attributes. this new
+// collection will be a collection of plain arrays, not Users models.
+        $newCollection = $collection->map(function ($model) use ($configFields) {
+            $array = collect(array_dot($model->toArray()))
+                ->only($configFields)
+                ->all();
+            return array_undot($array);
+        });
+        $this->formBuilder->setCollection($newCollection);
     }
 
     /**

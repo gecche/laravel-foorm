@@ -221,11 +221,13 @@ abstract class Foorm
 
         $relations = $modelName::getRelationsData();
 
-//        foreach ($relations as $key => $relation) {
-//            if (in_array($key, $this->inactiveRelations)) {
-//                unset($relations[$key]);
-//            }
-//        }
+        $configRelations = array_keys(Arr::get($this->config,'relations',[]));
+
+        $relationsToUnset = array_diff(array_keys($relations),$configRelations);
+
+        foreach ($relationsToUnset as $relationToUnset) {
+            unset($relations[$relationToUnset]);
+        }
 
         $this->relations = $relations;
 
