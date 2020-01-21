@@ -365,16 +365,18 @@ class FoormList extends Foorm
     }
 
     protected function setFormMetadataOrder() {
-        $order_input = array_get($this->input,'order_field', false);
-        if ($order_input !== false) {
-            $this->formMetadata['order']['order_field'] = $order_input;
-            $this->formMetadata['order']['order_direction'] = Input::get('order_direction', 'ASC');
+        $orderParams = array_get($this->input, 'order_params', []);
+
+        $orderField = array_get($orderParams,'field', false);
+        if ($orderField !== false) {
+            $this->formMetadata['order']['field'] = $orderField;
+            $this->formMetadata['order']['direction'] = array_get($orderParams,'direction', 'ASC');
         } else {
             $order = $this->model->getDefaultOrderColumns();
             $orderColumns = array_keys($order);
             $orderDirections = array_values($order);
-            $this->formMetadata['order']['order_field'] = array_get($orderColumns, 0, 'id');
-            $this->formMetadata['order']['order_direction'] = array_get($orderDirections, 0, 'ASC');
+            $this->formMetadata['order']['field'] = array_get($orderColumns, 0, 'id');
+            $this->formMetadata['order']['direction'] = array_get($orderDirections, 0, 'ASC');
         }
 
     }
