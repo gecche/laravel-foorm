@@ -270,25 +270,50 @@ class FoormList extends Foorm
 
     protected function filterFieldsFromConfig() {
         $configFields = array_keys(Arr::get($this->config,'fields',[]));
-        foreach (Arr::get($this->config,'relations',[]) as $relationName => $relationValue) {
 
-            $configRelationFields = Arr::get($relationValue,'fields',[]);
-            $configRelationFields = array_key_append($configRelationFields,$relationName.'.',false);
-            $configRelationFields = array_keys($configRelationFields);
+        $hasManies = array_keys($this->getHasManies());
+        $belongsTos = array_keys($this->getBelongsTos());
+        $relations = Arr::get($this->config,'relations',[]);
 
-            $configFields = array_merge($configFields,$configRelationFields);
+        $relationsConfigFields = [];
+        foreach ($relations as $relationName => $relationValue) {
+
+            $configFields[] = $relationName;
+            $relationsConfigFields[$relationName] = Arr::get($relationValue,'fields',[]);
         }
-
 
         $collection = $this->formBuilder->getCollection();
 
+
+//        echo "<pre>";
+//        print_r($collection->toArray());
+//        echo "</pre>";
+
 // build your second collection with a subset of attributes. this new
 // collection will be a collection of plain arrays, not Users models.
-        $newCollection = $collection->map(function ($model) use ($configFields) {
-            $array = collect(array_dot($model->toArray()))
-                ->only($configFields)
-                ->all();
-            return array_undot($array);
+        $newCollection = $collection->map(function ($model) use ($configFields,$hasManies,$belongsTos,$relationsConfigFields) {
+
+
+
+            $arrayFiltered = array_intersect_key($model->toArray(),array_flip($configFields));
+
+            foreach ($belongsTos as $relation) {
+                $relationArray = array_intersect_key($arrayFiltered[$relation],$relationsConfigFields[$relation]);
+                $arrayFiltered[$relation] = $relationArray;
+            }
+
+            foreach ($hasManies as $relation) {
+
+                foreach (Arr::get($arrayFiltered,$relation,[]) as $hasManyArrayKey => $hasManyArray) {
+                    $relationArray = array_intersect_key($hasManyArray,$relationsConfigFields[$relation]);
+                    $arrayFiltered[$relation][$hasManyArrayKey] = $relationArray;
+
+                }
+            }
+
+
+
+            return $arrayFiltered;
         });
         $this->formBuilder->setCollection($newCollection);
     }
