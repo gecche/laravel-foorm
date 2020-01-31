@@ -123,7 +123,8 @@ class FormManager
 
 
         $relativeModelName = studly_case($snakeModelName);
-        $fullModelName = $this->defaultConfig['models_namespace'] . $relativeModelName;
+        //$fullModelName = $this->defaultConfig['models_namespace'] . $relativeModelName;
+        $fullModelName = $finalConfig['models_namespace'] . $relativeModelName;
 
         if (!class_exists($fullModelName))
             throw new \InvalidArgumentException("Model class $fullModelName does not exists");
