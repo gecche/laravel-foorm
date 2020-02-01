@@ -48,7 +48,7 @@ class FormManager
 
         $this->formName = $formName;
         $this->request = $request;
-        $this->params = $params;
+        $this->buildParams($params);
         $this->setDefaultConfig();
         $this->getConfig();
         $this->setModel();
@@ -72,6 +72,24 @@ class FormManager
         return $this->formName;
     }
 
+
+    public function buildParams($params) {
+//        $this->setFixedConstraintsToParams($params);
+        $this->params = $params;
+    }
+
+    protected function setFixedConstraintsToParams($params) {
+        if (is_array(Arr::get($params,'fixed_constraints'))) {
+            return $params;
+        }
+
+        $requestFixedConstraints = $this->request->input('fixed_constraints');
+        if (is_array($requestFixedConstraints)) {
+            $params['fixed_constraints'] = $requestFixedConstraints;
+        }
+
+        return $params;
+    }
 
     protected function fallbackFormName($formName)
     {
