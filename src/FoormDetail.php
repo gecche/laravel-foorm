@@ -344,6 +344,15 @@ class FoormDetail extends Foorm
     {
 
         foreach (array_keys($configFields) as $fieldName) {
+            /*
+             * Filtro i campi in base alla configurazione.
+             * Se nell'input non sono presenti alcuni campi non imposto niente
+             * Se ho un modello instanziato, non considero la primarykey dell'input
+             */
+            if (!array_key_exists($fieldName,$input) ||
+                ($fieldName == $this->primary_key_field && Arr::get($this->params,'id'))) {
+                continue;
+            }
             $model->$fieldName = Arr::get($input, $fieldName);
         }
 

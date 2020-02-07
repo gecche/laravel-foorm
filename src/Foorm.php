@@ -449,7 +449,7 @@ abstract class Foorm
         }
 
         if ($options == 'dboptions') {
-            return $this->dbHelper->listEnumValues($fieldKey);
+            return $this->dbHelper->listEnumValues($fieldKey,$this->getModel()->getTable());
         }
 
         if (starts_with($options, 'belongsto:')) {
