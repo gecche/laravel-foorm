@@ -343,14 +343,16 @@ class FoormDetail extends Foorm
     protected function setFieldsToModel($model, $configFields, $input)
     {
 
+        //SE SONO IN EDIT non considero la primarykey dell'input
+        if (Arr::get($this->params,'id')) {
+            unset($input[$this->primary_key_field]);
+        }
         foreach (array_keys($configFields) as $fieldName) {
             /*
              * Filtro i campi in base alla configurazione.
              * Se nell'input non sono presenti alcuni campi non imposto niente
-             * Se ho un modello instanziato, non considero la primarykey dell'input
              */
-            if (!array_key_exists($fieldName,$input) ||
-                ($fieldName == $this->primary_key_field && Arr::get($this->params,'id'))) {
+            if (!array_key_exists($fieldName,$input)) {
                 continue;
             }
             $model->$fieldName = Arr::get($input, $fieldName);
