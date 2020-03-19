@@ -10,9 +10,9 @@
         }
     ],
     "require": {
-        "laravel/framework": "5.5.*",
-        "gecche/laravel-dbhelper": "v1.1.x-dev",
-        "gecche/laravel-breeze": "v1.1.x-dev"
+        "laravel/framework": "^6.0",
+        "gecche/laravel-dbhelper": "v2.x-dev",
+        "gecche/laravel-breeze": "v2.x-dev"
     },
     "autoload": {
         "psr-4": {
