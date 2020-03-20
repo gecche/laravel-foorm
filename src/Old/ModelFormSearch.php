@@ -34,7 +34,7 @@ class ModelFormSearch extends ModelForm {
     }
 
     protected function setContextConstraints() {
-        if (array_get($this->params,'constraintKey',false)) {
+        if (Arr::get($this->params,'constraintKey',false)) {
             $this->result = $this->result->where($this->params['constraintKey'],$this->params['constraintValue']);
         }
     }
@@ -42,7 +42,7 @@ class ModelFormSearch extends ModelForm {
 
     protected function setFilterAllForEnums() {
         foreach ($this->resultParams as $key => $value) {
-            if (array_key_exists('options',$value) && array_get($this->enumsConfig,$key,$this->enumsConfig['default'])) {
+            if (array_key_exists('options',$value) && Arr::get($this->enumsConfig,$key,$this->enumsConfig['default'])) {
                 $options = [env('FORM_FILTER_ALL',-99) => trans_uc('app.any')] + $this->resultParams[$key]['options'];
                 $this->resultParams[$key]['options'] = $options;
                 $this->resultParams[$key]['options_order'] = array_keys($options);
@@ -101,9 +101,9 @@ class ModelFormSearch extends ModelForm {
 
              foreach ($this->belongsTos as $key => $value) {
                  $modelName = $value['modelName'];
-                 $forSelectListConfig = array_get($this->forSelectListConfig, $key,
+                 $forSelectListConfig = Arr::get($this->forSelectListConfig, $key,
                      $this->forSelectListConfig['default']);
-                 if (!array_get($forSelectListConfig['params'],'permissionPrefix')) {
+                 if (!Arr::get($forSelectListConfig['params'],'permissionPrefix')) {
                      $forSelectListConfig['params']['permissionPrefix'] = $this->permissionPrefix;
                  }
 
@@ -125,8 +125,8 @@ class ModelFormSearch extends ModelForm {
              $order = $this->model->getDefaultOrderColumns();
              $orderColumns = array_keys($order);
              $orderDirections = array_values($order);
-             $this->resultParams['order_field'] = array_get($orderColumns, 0, 'id');
-             $this->resultParams['order_direction'] = array_get($orderDirections, 0, 'ASC');
+             $this->resultParams['order_field'] = Arr::get($orderColumns, 0, 'id');
+             $this->resultParams['order_direction'] = Arr::get($orderDirections, 0, 'ASC');
          }
 
 
@@ -171,7 +171,7 @@ class ModelFormSearch extends ModelForm {
 
                     if ($relationModel->getKeyName() == $searchField) {
 
-                        $forSelectListConfig = array_get($this->forSelectListConfig,$key,$this->forSelectListConfig['default']);
+                        $forSelectListConfig = Arr::get($this->forSelectListConfig,$key,$this->forSelectListConfig['default']);
                         $options = $relationModelName::getForSelectList($forSelectListConfig['columns'],$forSelectListConfig['separator'],$forSelectListConfig['params']);
                         $this->resultParams[$key]['options'] = $options;
                         $this->resultParams[$key]['options_order'] = array_keys($options);

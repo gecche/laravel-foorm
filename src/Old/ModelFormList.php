@@ -31,8 +31,8 @@ class ModelFormList extends ModelForm {
         // valore default del paginate number
         $values = Config::get($formKey,[]);
 
-        $per_page = array_get($values,'per_page',false);
-        $pagination_steps = array_get($values,'pagination_steps',[]);
+        $per_page = Arr::get($values,'per_page',false);
+        $pagination_steps = Arr::get($values,'pagination_steps',[]);
         if ($per_page !== false) {
             $this->paginateNumber = $per_page;
         } else {
@@ -44,7 +44,7 @@ class ModelFormList extends ModelForm {
         }
 
         //TOTALI
-        $summary = array_get($values,'summary',[]);
+        $summary = Arr::get($values,'summary',[]);
 
         foreach ($summary as $summaryFieldKey => $summaryFieldValue) {
 
@@ -60,7 +60,7 @@ class ModelFormList extends ModelForm {
 
         $this->setHasManies();
         $this->setBelongsTos();
-        if (array_get($params,'buildList',true)) {
+        if (Arr::get($params,'buildList',true)) {
             $this->setResult();
             $this->setResultParams();
             $this->setSummaryParams();
@@ -170,8 +170,8 @@ class ModelFormList extends ModelForm {
     }
 
     protected function setContextConstraints() {
-        $constraintKey = array_get($this->params,'constraintKey',false);
-        $constraintValue = array_get($this->params,'constraintValue',false);
+        $constraintKey = Arr::get($this->params,'constraintKey',false);
+        $constraintValue = Arr::get($this->params,'constraintValue',false);
         if ($constraintKey) {
 
             $constraintKeyParts = explode('.',$constraintKey);
@@ -210,8 +210,8 @@ class ModelFormList extends ModelForm {
     public function setOrderResult() {
         if (array_key_exists('sort',Input::all())) {
             $sort = Input::get('sort',[]);
-            $order_input = array_get($sort,'field', false);
-            $order_direction = array_get($sort,'sort', 'ASC');
+            $order_input = Arr::get($sort,'field', false);
+            $order_direction = Arr::get($sort,'sort', 'ASC');
         } else {
             $order_input = Input::get('order_field', false);
             $order_direction = Input::get('order_direction', 'ASC');
@@ -221,7 +221,7 @@ class ModelFormList extends ModelForm {
 
         if ($order_input) {
 
-            $orderMethod = 'buildOrder' . studly_case($order_input);
+            $orderMethod = 'buildOrder' . Str::studly($order_input);
 
             $this->result = $this->$orderMethod($order_input, $order_direction, $this->result);
         } elseif (method_exists($this->model,'defaultOrderMethod')) {
@@ -254,17 +254,17 @@ class ModelFormList extends ModelForm {
             if (ends_with($searchKey, '_operator')) {
                 continue;
             }
-            $searchOp = array_get($input,'s_' . $searchKey . '_operator','=');
+            $searchOp = Arr::get($input,'s_' . $searchKey . '_operator','=');
 
             $searchKeyParts = explode('|',$searchKey);
             switch (count($searchKeyParts)) {
                 case 1:
-                    $searchMethod = 'buildSearchFilter' . studly_case($searchOp);
+                    $searchMethod = 'buildSearchFilter' . Str::studly($searchOp);
 //                    echo "search Method $searchMethod\n";
                     $this->result = $this->$searchMethod($searchKey, $searchValues, $searchOp, $this->result, $searchInputs);
                     break;
                 case 2:
-                    $searchMethod = 'buildSearchFilterRelation' . studly_case($searchOp);
+                    $searchMethod = 'buildSearchFilterRelation' . Str::studly($searchOp);
 
                     $this->result = $this->$searchMethod($searchKeyParts[0],$searchKeyParts[1], $searchValues, $searchOp, $this->result, $searchInputs);
                     break;
@@ -285,8 +285,8 @@ class ModelFormList extends ModelForm {
         $paginateNumber = Input::get('paginateNumber') ? Input::get('paginateNumber') : $this->paginateNumber;
 
         $paginationArray = Input::get('pagination',[]);
-        $pageNumber = array_get($paginationArray,'page');
-        $paginateNumber = array_get($paginationArray,'perpage',$paginateNumber);
+        $pageNumber = Arr::get($paginationArray,'page');
+        $paginateNumber = Arr::get($paginationArray,'perpage',$paginateNumber);
         if ($paginateNumber < 0) {
             $this->summaryResult = $this->result;
             $this->result = $this->result->paginate(100000, $this->paginateSelect,'page',$pageNumber);
@@ -360,8 +360,8 @@ class ModelFormList extends ModelForm {
             $order = $this->model->getDefaultOrderColumns();
             $orderColumns = array_keys($order);
             $orderDirections = array_values($order);
-            $this->resultParams['order_field'] = array_get($orderColumns, 0, 'id');
-            $this->resultParams['order_direction'] = array_get($orderDirections, 0, 'ASC');
+            $this->resultParams['order_field'] = Arr::get($orderColumns, 0, 'id');
+            $this->resultParams['order_direction'] = Arr::get($orderDirections, 0, 'ASC');
         }
 
         Cache::forever($cacheKey,$this->resultParams);

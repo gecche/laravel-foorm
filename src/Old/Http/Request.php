@@ -61,7 +61,7 @@ class Request extends \Illuminate\Http\Request {
                     }                
                 }
                 
-		return array_get($input, $key, $default);
+		return Arr::get($input, $key, $default);
 	}
 
 }

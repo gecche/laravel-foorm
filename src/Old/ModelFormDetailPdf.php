@@ -32,7 +32,7 @@ class ModelFormDetailPdf extends ModelFormDetail {
         $this->customizeResult();
 
         $modelName = $this->getModelName();
-        $pdfType = array_get($this->params,'pdfType','default');
+        $pdfType = Arr::get($this->params,'pdfType','default');
         $pdf = $modelName::getPdfExport($this->result, $this->resultParams, $pdfType, ['model' => $this->model]);
 
         $this->result = $pdf;

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 trait ConstraintBuilderTrait
 {
@@ -28,7 +29,7 @@ trait ConstraintBuilderTrait
     public function buildConstraint($builder, $field, $value, $op = '=', $params = [])
     {
 
-        $studly_op = studly_case($op);
+        $studly_op = Str::studly($op);
 
         $methodName = 'buildSearchFilter' . $studly_op;
 
@@ -210,7 +211,7 @@ trait ConstraintBuilderTrait
     public function buildConstraintRelation($relation, $builder, $field, $value, $op = '=', $params = [])
     {
 
-        $studly_op = studly_case($op);
+        $studly_op = Str::studly($op);
 
         $methodName = 'buildSearchFilterRelation' . $studly_op;
 

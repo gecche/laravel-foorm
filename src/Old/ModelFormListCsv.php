@@ -35,7 +35,7 @@ class ModelFormListCsv extends ModelFormList {
         $this->setBelongsTos();
 
         $this->setListResult();
-        $this->setSearchFilters(array_get($params,'input',null));
+        $this->setSearchFilters(Arr::get($params,'input',null));
         $this->setOrderResult();
 
 //        $this->totalCount = $this->result->count();
@@ -63,7 +63,7 @@ class ModelFormListCsv extends ModelFormList {
 
 //        Log::info("Mah2");
         $modelName = $this->getModelName();
-        $csvType = array_get($this->params,'csvType','default');
+        $csvType = Arr::get($this->params,'csvType','default');
         $params = [
             'headers' => $page == 1 ? true : false,
         ];
@@ -87,7 +87,7 @@ class ModelFormListCsv extends ModelFormList {
         $this->customizeResult();
 
         $modelName = $this->getModelName();
-        $csvType = array_get($this->params,'csvType','default');
+        $csvType = Arr::get($this->params,'csvType','default');
         $csv = $modelName::getCsvExport($this->result, $csvType);
 
         $this->result = $csv;

@@ -123,8 +123,8 @@ class ModelForm extends Form
 
     public function buildOrder($key, $direction, $builder = null)
     {
-        $orderParams = array_get($this->orderParams, $key, array());
-        $orderDB = array_get($orderParams, 'db', $this->model->getTable() . '.' . $key);
+        $orderParams = Arr::get($this->orderParams, $key, array());
+        $orderDB = Arr::get($orderParams, 'db', $this->model->getTable() . '.' . $key);
 
         $return = $builder->orderBy($orderDB, $direction);
         return $return;
@@ -132,7 +132,7 @@ class ModelForm extends Form
 
     /*
       protected function modelFilter() {
-      if (array_get($this->result, 'created_at'))
+      if (Arr::get($this->result, 'created_at'))
       unset($this->modelStandardResult['created_at']);
       return true;
       }
@@ -141,10 +141,10 @@ class ModelForm extends Form
 
     protected function getSaveType($array, $key, $defaultSaveType)
     {
-        $saveTypeValues = array_get($array, $key, $defaultSaveType);
+        $saveTypeValues = Arr::get($array, $key, $defaultSaveType);
         if (is_array($saveTypeValues)) {
-            $saveType = array_get($saveTypeValues, 'type', false);
-            $saveParams = array_get($saveTypeValues, 'params', array());
+            $saveType = Arr::get($saveTypeValues, 'type', false);
+            $saveParams = Arr::get($saveTypeValues, 'params', array());
         } else {
             $saveType = $saveTypeValues;
             $saveParams = array();
@@ -188,7 +188,7 @@ class ModelForm extends Form
                         $relations[$key]['orderKey'] = false;
                     } else {
 
-                        $orderKey = array_get($this->relationsOrderKey, $key, 'ordine');
+                        $orderKey = Arr::get($this->relationsOrderKey, $key, 'ordine');
                         $pivotFields = $this->model->getPivotKeys($key);
                         if (in_array($orderKey, $pivotFields)) {
                             $relations[$key]['orderKey'] = $orderKey;
@@ -206,7 +206,7 @@ class ModelForm extends Form
                     if (isset($this->relationsOrderKey[$key]) && !$this->relationsOrderKey[$key]) {
                         $relations[$key]['orderKey'] = false;
                     } else {
-                        $orderKey = array_get($this->relationsOrderKey, $key, 'ordine');
+                        $orderKey = Arr::get($this->relationsOrderKey, $key, 'ordine');
                         $relations[$key]['orderKey'] = $orderKey;
                     }
 
@@ -220,7 +220,7 @@ class ModelForm extends Form
                     if (isset($this->relationsOrderKey[$key]) && !$this->relationsOrderKey[$key]) {
                         $relations[$key]['orderKey'] = false;
                     } else {
-                        $orderKey = array_get($this->relationsOrderKey, $key, 'ordine');
+                        $orderKey = Arr::get($this->relationsOrderKey, $key, 'ordine');
                         $relations[$key]['orderKey'] = $orderKey;
                     }
                     break;
@@ -274,7 +274,7 @@ class ModelForm extends Form
 
             switch ($relation[0]) {
                 case Ardent::BELONGS_TO:
-                    $foreignKey = array_get($relations[$key], 'foreignKey', snake_case($key) . '_id');
+                    $foreignKey = Arr::get($relations[$key], 'foreignKey', snake_case($key) . '_id');
 
                     $saveTypeArray = $this->getSaveType($this->belongsTosSaveTypes, $key, 'standard');
                     $saveType = $saveTypeArray['type'];
@@ -318,7 +318,7 @@ class ModelForm extends Form
 
         $result = array();
         foreach ($this->resultParams as $field => $value) {
-            if (is_array($value) && array_get($value, 'fields', false)) {
+            if (is_array($value) && Arr::get($value, 'fields', false)) {
                 $subfields = array_keys($value['fields']);
                 foreach ($subfields as $subfield) {
                     $subModelName = camel_case($value['modelRelativeName']);
@@ -389,7 +389,7 @@ class ModelForm extends Form
         $result = array();
         foreach ($this->resultParams as $field => $value) {
             echo "here --- ".$this->modelRelativeName."---".$field."\n";
-            if (is_array($value) && array_get($value, 'fields', false)) {
+            if (is_array($value) && Arr::get($value, 'fields', false)) {
                 $subfields = array_keys($value['fields']);
                 //$result[$field] = [];
                 foreach ($subfields as $subfield) {
@@ -569,7 +569,7 @@ class ModelForm extends Form
 
     public function createResultParamItem($field, $params = null)
     {
-        if (array_get($this->resultParams, $field, false)) {
+        if (Arr::get($this->resultParams, $field, false)) {
             return;
         }
         if (!$params) {
@@ -583,11 +583,11 @@ class ModelForm extends Form
     protected function getRelationDataFromModel($relation)
     {
 
-        if (array_get($this->belongsTos, $relation, false)) {
+        if (Arr::get($this->belongsTos, $relation, false)) {
             return $this->belongsTos[$relation];
         }
 
-        if (array_get($this->hasManies, $relation, false)) {
+        if (Arr::get($this->hasManies, $relation, false)) {
             return $this->hasManies[$relation];
         }
 
@@ -645,7 +645,7 @@ class ModelForm extends Form
             $realvalue = $value;
         }
         if (is_array($value)) {
-            $firstValue = array_get($value, 0, false);
+            $firstValue = Arr::get($value, 0, false);
             if ($firstValue !== false && $firstValue !== '') {
                 $realvalue = $value[0];
             }
@@ -656,15 +656,15 @@ class ModelForm extends Form
 
     public function buildSearchFilter($key, $value, $op = '=', $builder = null, $searchInputs = [])
     {
-        $searchParams = array_get($this->searchParams, $key, array());
-        $searchDB = array_get($searchParams, 'db', $this->model->getTable() . '.' . $key);
+        $searchParams = Arr::get($this->searchParams, $key, array());
+        $searchDB = Arr::get($searchParams, 'db', $this->model->getTable() . '.' . $key);
         $realvalue = $this->getFilterRealvalue($value);
 
         if ($realvalue === null) {
             return $builder;
         }
 
-        $studly_op = studly_case($op);
+        $studly_op = Str::studly($op);
         switch ($studly_op) {
             case 'Like':
                 return $builder->where($searchDB, 'LIKE', '%' . $realvalue . '%');
@@ -698,8 +698,8 @@ class ModelForm extends Form
                 if (!is_array($value)) {
                     return $builder;
                 }
-                $value1 = array_get($value, 0);
-                $value2 = array_get($value, 1);
+                $value1 = Arr::get($value, 0);
+                $value2 = Arr::get($value, 1);
                 if (!$value2) {
                     return $builder->where($searchDB, '>=', $value1);
                 }
@@ -714,7 +714,7 @@ class ModelForm extends Form
 
     public function buildSearchFilterDatatable($key, $value, $op = '=', $builder = null, $searchInputs = [])
     {
-        $studly_op = studly_case($op);
+        $studly_op = Str::studly($op);
         if ($studly_op != 'Datatable' || $key != 'datatable') {
             return $builder;
         }
@@ -727,12 +727,12 @@ class ModelForm extends Form
 
         $value = is_array($value) ? $value[0] : $value;
 
-        $searchParams = array_get($this->searchParams, $key, array());
+        $searchParams = Arr::get($this->searchParams, $key, array());
 
 
         $builder->where(function ($query) use ($value,$searchFields,$searchParams) {
             foreach ($searchFields as $searchField) {
-                $searchDB = array_get($searchParams, 'db', $this->model->getTable() . '.' . $searchField);
+                $searchDB = Arr::get($searchParams, 'db', $this->model->getTable() . '.' . $searchField);
                 $query->orWhere($searchDB, 'LIKE', '%' . $value . '%');
             }
         });
@@ -743,17 +743,17 @@ class ModelForm extends Form
 
     public function buildSearchFilterDateIn($key, $value, $op = '=', $builder = null, $searchInputs = [])
     {
-        $studly_op = studly_case($op);
+        $studly_op = Str::studly($op);
         if ($studly_op != 'DateIn') {
             return $builder;
         }
-        $searchParams = array_get($this->searchParams, $key, array());
-        $searchDB = array_get($searchParams, 'db', $this->model->getTable() . '.' . $key);
+        $searchParams = Arr::get($this->searchParams, $key, array());
+        $searchDB = Arr::get($searchParams, 'db', $this->model->getTable() . '.' . $key);
 
         //DA SISTEMARE
         if (is_array($value)) {
-            $firstValue = array_get($value, 0, false);
-            $secondValue = array_get($value, 1, false);
+            $firstValue = Arr::get($value, 0, false);
+            $secondValue = Arr::get($value, 1, false);
             if (!$firstValue && !$secondValue) {
                 return $builder;
             }
@@ -774,10 +774,10 @@ class ModelForm extends Form
 
         }
 
-        $endField = array_get($searchParams, 'end_date_in_field', false);
+        $endField = Arr::get($searchParams, 'end_date_in_field', false);
         if ($endField) {
 
-            $searchDBEnd = array_get($searchParams, 'db', $this->model->getTable() . '.' . $endField);
+            $searchDBEnd = Arr::get($searchParams, 'db', $this->model->getTable() . '.' . $endField);
 
             $resultQuery = $builder->where(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
                 $query->orWhere(function ($query) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
@@ -803,7 +803,7 @@ class ModelForm extends Form
 
     public function buildSearchFilterRelation($relation, $key, $value, $op = '=', $builder = null, $searchInputs = [])
     {
-        $searchParams = array_get($this->searchParams, $key, array());
+        $searchParams = Arr::get($this->searchParams, $key, array());
         $relationModelData = $this->getRelationDataFromModel($relation);
         //Da controllare: in questo non ho la relatzione nel modello
         if (count($relationModelData) < 1) {
@@ -815,14 +815,14 @@ class ModelForm extends Form
 
         $dbName = Config::get('database.connections.' . $relationModel->getConnectionName() . '.database');
 
-        $searchDB = array_get($searchParams, 'db', $dbName . '.' . $relationModel->getTable() . '.' . $key);
+        $searchDB = Arr::get($searchParams, 'db', $dbName . '.' . $relationModel->getTable() . '.' . $key);
         $realvalue = $this->getFilterRealvalue($value);
 
         if ($realvalue === null) {
             return $builder;
         }
 
-        $studly_op = studly_case($op);
+        $studly_op = Str::studly($op);
 
 
         switch ($studly_op) {
@@ -874,8 +874,8 @@ class ModelForm extends Form
                 if (!is_array($value)) {
                     return $builder;
                 }
-                $value1 = array_get($value, 0, false);
-                $value2 = array_get($value, 1, false);
+                $value1 = Arr::get($value, 0, false);
+                $value2 = Arr::get($value, 1, false);
                 if (!$value2) {
                     return $builder->whereHas($relation, function ($q) use ($searchDB, $value1) {
                         $q->where($searchDB, '>=', $value1);
@@ -898,7 +898,7 @@ class ModelForm extends Form
 
     public function buildSearchFilterRelationDateIn($relation, $key, $value, $op = '=', $builder = null, $searchInputs = [])
     {
-        $searchParams = array_get($this->searchParams, $key, array());
+        $searchParams = Arr::get($this->searchParams, $key, array());
         $relationModelData = $this->getRelationDataFromModel($relation);
         //Da controllare: in questo non ho la relatzione nel modello
         if (count($relationModelData) < 1) {
@@ -910,20 +910,20 @@ class ModelForm extends Form
 
         $dbName = Config::get('database.connections.' . $relationModel->getConnectionName() . '.database');
 
-        $studly_op = studly_case($op);
+        $studly_op = Str::studly($op);
         if ($studly_op != 'DateIn') {
             return $builder;
         }
 
-        $searchParams = array_get($this->searchParams, $key, array());
-        $searchDB = array_get($searchParams, 'db', $dbName . '.' . $relationModel->getTable() . '.' . $key);
+        $searchParams = Arr::get($this->searchParams, $key, array());
+        $searchDB = Arr::get($searchParams, 'db', $dbName . '.' . $relationModel->getTable() . '.' . $key);
 
         //DA SISTEMARE
         if (!is_array($value)) {
             return $builder;
         }
-        $firstValue = array_get($value, 0, false);
-        $secondValue = array_get($value, 1, false);
+        $firstValue = Arr::get($value, 0, false);
+        $secondValue = Arr::get($value, 1, false);
         if (!$firstValue && !$secondValue) {
             return $builder;
         }
@@ -945,10 +945,10 @@ class ModelForm extends Form
         }
 
 
-        $endField = array_get($searchParams, 'end_date_in_field', false);
+        $endField = Arr::get($searchParams, 'end_date_in_field', false);
         if ($endField) {
 
-            $searchDBEnd = array_get($searchParams, 'db', $dbName . '.' . $relationModel->getTable() . '.' . $endField);
+            $searchDBEnd = Arr::get($searchParams, 'db', $dbName . '.' . $relationModel->getTable() . '.' . $endField);
 
             $resultQuery = $builder->whereHas($relation, function ($qRel) use ($searchDB, $searchDBEnd, $firstValue, $secondValue) {
 

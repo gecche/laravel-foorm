@@ -387,7 +387,7 @@ class ModelDBMethods
                                         0 => ucfirst(trans("app.no")),
                                         1 => ucfirst(trans("app.yes"))
                                     );
-                                    if (array_get($row, 'Null', 'YES') == 'YES') {
+                                    if (Arr::get($row, 'Null', 'YES') == 'YES') {
                                         $column['options'] = array(env('FORM_ITEM_NONE', -99) => trans_uc('app.item_none')) + $column['options'];
                                     }
                                 }
@@ -402,7 +402,7 @@ class ModelDBMethods
                                 $column['options'] = array_combine($options, $options);
 
 
-                                if (array_get($row, 'Null', 'YES') == 'YES') {
+                                if (Arr::get($row, 'Null', 'YES') == 'YES') {
                                     $column['options'] = array(env('FORM_ITEM_NONE', -99) => trans_uc('app.item_none')) + $column['options'];
                                 }
 
@@ -418,7 +418,7 @@ class ModelDBMethods
         }
 
         if ($single_column) {
-            return array_get($columns, $single_column, array());
+            return Arr::get($columns, $single_column, array());
         }
         return $columns;
     }

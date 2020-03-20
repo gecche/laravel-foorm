@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Support\Arr;
 
 trait OrderBuilderTrait
 {
@@ -29,14 +31,14 @@ trait OrderBuilderTrait
             $direction = 'ASC';
         }
 
-        $methodName = 'buildOrder' . studly_case($field);
+        $methodName = 'buildOrder' . Str::studly($field);
 
         if (method_exists($this, $methodName)) {
             return $this->$methodName($builder, $field, $direction, $params);
         }
 
-        $table = array_get($params, 'table', $this->model->getTable());
-        $db = array_get($params, 'db');
+        $table = Arr::get($params, 'table', $this->model->getTable());
+        $db = Arr::get($params, 'db');
 
         $dbField = $db ? $db . '.' : '';
         $dbField .= $table ? $table . '.' : '';

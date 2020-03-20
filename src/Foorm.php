@@ -2,9 +2,6 @@
 
 namespace Gecche\Foorm;
 
-use Cupparis\Acl\Facades\Acl;
-use Cupparis\Ardent\Ardent;
-
 use Gecche\DBHelper\Facades\DBHelper;
 use Gecche\Foorm\Contracts\ListBuilder;
 use Gecche\Breeze\Breeze;
@@ -13,7 +10,6 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -140,7 +136,7 @@ abstract class Foorm
 
     public function getModelsNamespace()
     {
-        return array_get($this->config,'models_namespace');
+        return Arr::get($this->config,'models_namespace');
     }
 
     /**
@@ -172,7 +168,7 @@ abstract class Foorm
      */
     public function getModelName()
     {
-        return array_get($this->config,'full_model_name');
+        return Arr::get($this->config,'full_model_name');
     }
 
     /**
@@ -180,7 +176,7 @@ abstract class Foorm
      */
     public function getModelRelativeName()
     {
-        return array_get($this->config,'relative_model_name');
+        return Arr::get($this->config,'relative_model_name');
     }
 
     /**
@@ -248,7 +244,7 @@ abstract class Foorm
 
         $relations = $this->getRelations();
 
-        $configRelations = array_get($this->config,'relations',[]);
+        $configRelations = Arr::get($this->config,'relations',[]);
 
         $this->hasManies = [];
 
@@ -260,7 +256,7 @@ abstract class Foorm
                 continue;
             }
 
-            $configRelationMetadata = array_get($configRelations,$relationName,[]);
+            $configRelationMetadata = Arr::get($configRelations,$relationName,[]);
 
             $relationConfig = [];
 
@@ -316,7 +312,7 @@ abstract class Foorm
 
         $relations = $this->getRelations();
 
-        $configRelations = array_get($this->config,'relations',[]);
+        $configRelations = Arr::get($this->config,'relations',[]);
 
         $this->belongsTos = [];
 
@@ -326,13 +322,13 @@ abstract class Foorm
                 continue;
             }
 
-            $configRelationMetadata = array_get($configRelations,$relationName,[]);
+            $configRelationMetadata = Arr::get($configRelations,$relationName,[]);
 
             $relationConfig = [];
 
             switch ($relationFromModel[0]) {
                 case Breeze::BELONGS_TO:
-//                    $foreignKey = array_get($relations[$relationName], 'foreignKey', snake_case($relationName) . '_id');
+//                    $foreignKey = Arr::get($relations[$relationName], 'foreignKey', snake_case($relationName) . '_id');
                     $relationConfig['relationName'] = $relationName;
                     break;
                 default:
@@ -416,7 +412,7 @@ abstract class Foorm
             'afterDeleteCallbackMethods',
         ];
 
-        foreach (array_get($metadata,'relations',[]) as $key => $relation) {
+        foreach (Arr::get($metadata,'relations',[]) as $key => $relation) {
 
             foreach ($relationFieldsToUnset as $field) {
                 unset($relation[$field]);
@@ -441,10 +437,10 @@ abstract class Foorm
         if ($options == 'boolean') {
 
             return [
-                array_get($fieldValue, 'bool-false-value', $defaultOptionsValues['bool-false-value'])
-                => array_get($fieldValue, 'bool-false-label', $defaultOptionsValues['bool-false-label']),
-                array_get($fieldValue, 'bool-true-value', $defaultOptionsValues['bool-true-value'])
-                => array_get($fieldValue, 'bool-true-label', $defaultOptionsValues['bool-true-label']),
+                Arr::get($fieldValue, 'bool-false-value', $defaultOptionsValues['bool-false-value'])
+                => Arr::get($fieldValue, 'bool-false-label', $defaultOptionsValues['bool-false-label']),
+                Arr::get($fieldValue, 'bool-true-value', $defaultOptionsValues['bool-true-value'])
+                => Arr::get($fieldValue, 'bool-true-label', $defaultOptionsValues['bool-true-label']),
             ];
         }
 
@@ -480,7 +476,7 @@ abstract class Foorm
             return $options;
         }
 
-        $predefinedLabel = array_get($fieldValue, $type.'-label', $defaultOptionsValues[$type.'-label']);
+        $predefinedLabel = Arr::get($fieldValue, $type.'-label', $defaultOptionsValues[$type.'-label']);
 
         $predefinedOption = [$defaultOptionsValues[$type.'-value'] =>
             ucfirst(trans($predefinedLabel))];
@@ -548,7 +544,7 @@ abstract class Foorm
     }
 
     protected function setFormMetadataFields() {
-        $fields = array_get($this->config, 'fields', []);
+        $fields = Arr::get($this->config, 'fields', []);
         $this->formMetadata['fields'] = $this->_setFormMetadataFields($fields);
 
         return $fields;
@@ -571,19 +567,19 @@ abstract class Foorm
         ];
         foreach ($fields as $fieldKey => $fieldValue) {
 
-            if (array_get($fieldValue, 'options')) {
+            if (Arr::get($fieldValue, 'options')) {
                 $options = $this->createOptions($fieldKey, $fieldValue, $defaultOptionsValues);
 
-                $hasNullOption = array_get($fieldValue, 'nulloption', true);
+                $hasNullOption = Arr::get($fieldValue, 'nulloption', true);
                 if ($hasNullOption) {
                     $options = $this->setPredefinedOption('null',$fieldValue, $options, $hasNullOption, $defaultOptionsValues);
                 }
 
-                $hasAnyOption = array_get($fieldValue, 'anyoption', false);
+                $hasAnyOption = Arr::get($fieldValue, 'anyoption', false);
                 if ($hasAnyOption) {
                     $options = $this->setPredefinedOption('any', $fieldValue, $options, $hasNullOption, $defaultOptionsValues);
                 }
-                $hasNoOption = array_get($fieldValue, 'nooption', false);
+                $hasNoOption = Arr::get($fieldValue, 'nooption', false);
                 if ($hasNoOption) {
                     $options = $this->setPredefinedOption('no', $fieldValue, $options, $hasNullOption, $defaultOptionsValues);
                 }
@@ -606,7 +602,7 @@ abstract class Foorm
 
 
         foreach ($this->hasManies as $key => $relationMetadata) {
-            $relationMetadata['fields'] = $this->_setFormMetadataFields(array_get($relationMetadata,'fields',[]));
+            $relationMetadata['fields'] = $this->_setFormMetadataFields(Arr::get($relationMetadata,'fields',[]));
             $relations[$key] = $relationMetadata;
         }
 

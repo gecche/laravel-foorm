@@ -255,7 +255,7 @@ class ModelJsonController extends AppController {
             return;
         }
 
-        $providerName = studly_case($this->modelRelativeName);
+        $providerName = Str::studly($this->modelRelativeName);
         $csvProviderName = $this->csvproviders_namespace . $providerName;
         $csvProvider = new $csvProviderName;
 
@@ -279,7 +279,7 @@ class ModelJsonController extends AppController {
                 return;
             }
 
-            $providerName = studly_case($this->modelRelativeName);
+            $providerName = Str::studly($this->modelRelativeName);
             $csvProviderName = $this->csvproviders_namespace . $providerName;
             $csvProvider = new $csvProviderName;
 
@@ -307,7 +307,7 @@ class ModelJsonController extends AppController {
             return;
         }
 
-        $providerName = studly_case($this->modelRelativeName);
+        $providerName = Str::studly($this->modelRelativeName);
         $csvProviderName = $this->csvproviders_namespace . $providerName;
         $csvProvider = new $csvProviderName;
 
@@ -342,8 +342,8 @@ class ModelJsonController extends AppController {
     public function csvrecovery($model) {
         $this->result['result'] = array();//array('field1' => 'ciao');
         $this->result['resultParams'] = array();
-        $this->result['modelName'] = studly_case($model);
-        $csvProviderName = $this->csvproviders_namespace . studly_case($model);
+        $this->result['modelName'] = Str::studly($model);
+        $csvProviderName = $this->csvproviders_namespace . Str::studly($model);
         
         $csvProvider = new $csvProviderName;
         $csvModelName = $csvProvider->getModelCsvName();
@@ -403,7 +403,7 @@ class ModelJsonController extends AppController {
             return;
         }
 
-        $providerName = studly_case($this->modelRelativeName);
+        $providerName = Str::studly($this->modelRelativeName);
         $datafileProviderName = $this->datafileproviders_namespace . $providerName;
         $datafileProvider = new $datafileProviderName;
 
@@ -427,7 +427,7 @@ class ModelJsonController extends AppController {
                 return;
             }
 
-            $providerName = studly_case($this->modelRelativeName);
+            $providerName = Str::studly($this->modelRelativeName);
             $datafileProviderName = $this->datafileproviders_namespace . $providerName;
             $datafileProvider = new $datafileProviderName;
 
@@ -455,7 +455,7 @@ class ModelJsonController extends AppController {
             return;
         }
 
-        $providerName = studly_case($this->modelRelativeName);
+        $providerName = Str::studly($this->modelRelativeName);
         $datafileProviderName = $this->datafileproviders_namespace . $providerName;
         $datafileProvider = new $datafileProviderName;
 
@@ -491,8 +491,8 @@ class ModelJsonController extends AppController {
     public function datafilerecovery($model) {
         $this->result['result'] = array();//array('field1' => 'ciao');
         $this->result['resultParams'] = array();
-        $this->result['modelName'] = studly_case($model);
-        $datafileProviderName = $this->datafileproviders_namespace . studly_case($model);
+        $this->result['modelName'] = Str::studly($model);
+        $datafileProviderName = $this->datafileproviders_namespace . Str::studly($model);
 
         $datafileProvider = new $datafileProviderName;
         $datafileModelName = $datafileProvider->getModelDatafileName();
@@ -794,20 +794,20 @@ class ModelJsonController extends AppController {
         if (!$currentModelName) {
             $routename = $this->request->route()->getName();
             $routenameParts = explode('.', $routename);
-            $currentModelName = array_get($routenameParts,0,null);
+            $currentModelName = Arr::get($routenameParts,0,null);
             if ($currentModelName == 'apijson') {
-                $currentModelName = array_get($routenameParts,1,'model');
+                $currentModelName = Arr::get($routenameParts,1,'model');
             }
 
         }
 
         $this->modelNamePermission = strtoupper(snake_case($currentModelName));
-        $this->modelRelativeName = studly_case($currentModelName);
+        $this->modelRelativeName = Str::studly($currentModelName);
 
         if ($datafile) {
-            $this->modelName = $this->datafilemodels_namespace . studly_case($currentModelName);
+            $this->modelName = $this->datafilemodels_namespace . Str::studly($currentModelName);
         } else {
-            $this->modelName = $this->models_namespace . studly_case($currentModelName);
+            $this->modelName = $this->models_namespace . Str::studly($currentModelName);
         }
     }
 

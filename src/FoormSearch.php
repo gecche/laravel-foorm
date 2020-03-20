@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class FoormSearch extends Foorm
 {
@@ -384,20 +385,20 @@ class FoormSearch extends Foorm
     {
 
         foreach ($this->belongsTos as $belongsToKey => $belongsToValue) {
-            $saveRelatedName = 'saveRelated' . studly_case($belongsToKey);
+            $saveRelatedName = 'saveRelated' . Str::studly($belongsToKey);
             $saveParams = $this->getRelationConfig($belongsToKey, 'saveParams', []);
             $this->$saveRelatedName('BelongsTo', $belongsToKey, $belongsToValue, $input, $saveParams);
         }
 
 
         foreach ($this->hasManies as $hasManyKey => $hasManyValue) {
-            $saveRelatedName = 'saveRelated' . studly_case($hasManyKey);
+            $saveRelatedName = 'saveRelated' . Str::studly($hasManyKey);
             $hasManyType = $hasManyValue['relationType'];
             $saveType = $this->getRelationConfig($hasManyKey,'saveType');
             $saveParams = $this->getRelationConfig($hasManyKey,'saveParams', []);
 
             if ($saveType) {
-                $hasManyType = $hasManyType . studly_case($saveType);
+                $hasManyType = $hasManyType . Str::studly($saveType);
             }
 
             $hasManyInputs = preg_grep_keys('/^' . $hasManyKey . '-/', $input);
@@ -625,7 +626,7 @@ class FoormSearch extends Foorm
         $hasManyPrefix = 'saveRelated';
         if (starts_with($name, $hasManyPrefix) && is_array($arguments)) {
 
-            $suffix = studly_case($arguments[0]);
+            $suffix = Str::studly($arguments[0]);
             if (in_array($suffix, ['BelongsTo','MorphManyAdd'])) {
                 return;
             }

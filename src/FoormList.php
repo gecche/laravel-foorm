@@ -92,7 +92,7 @@ class FoormList extends Foorm
 
     protected function applyFixedConstraints()
     {
-        $fixedConstraints = array_get($this->params, 'fixed_constraints', []);
+        $fixedConstraints = Arr::get($this->params, 'fixed_constraints', []);
 
         foreach ($fixedConstraints as $fixedConstraint) {
             $this->applyConstraint($fixedConstraint);
@@ -103,7 +103,7 @@ class FoormList extends Foorm
     {
 
 
-        $field = array_get($constraintArray, 'field', null);
+        $field = Arr::get($constraintArray, 'field', null);
 
         if (!$field || !is_string($field) || !array_key_exists('value', $constraintArray)) {
             return $this->formBuilder;
@@ -120,19 +120,19 @@ class FoormList extends Foorm
             unset($fieldExploded[0]);
             $field = implode('.', $fieldExploded);
 
-            $relationData = array_get($this->relations, $relation, []);
+            $relationData = Arr::get($this->relations, $relation, []);
             if (!array_key_exists('modelName', $relationData)) {
                 return $this->formBuilder;
             }
 
             $relationModelName = $relationData['modelName'];
             $relationModel = new $relationModelName;
-            $table = array_get($constraintArray, 'table', $relationModel->getTable());
-            $db = array_get($constraintArray, 'db',config('database.connections.' . $relationModel->getConnectionName() . '.database'));
+            $table = Arr::get($constraintArray, 'table', $relationModel->getTable());
+            $db = Arr::get($constraintArray, 'db',config('database.connections.' . $relationModel->getConnectionName() . '.database'));
 
         } else {
-            $table = array_get($constraintArray, 'table', $this->model->getTable());
-            $db = array_get($constraintArray, 'db');
+            $table = Arr::get($constraintArray, 'table', $this->model->getTable());
+            $db = Arr::get($constraintArray, 'db');
         }
 
 
@@ -140,8 +140,8 @@ class FoormList extends Foorm
         $dbField .= $table ? $table . '.' : '';
         $dbField .= $field;
 
-        $op = array_get($constraintArray, 'op', '=');
-        $params = array_get($constraintArray, 'params', []);
+        $op = Arr::get($constraintArray, 'op', '=');
+        $params = Arr::get($constraintArray, 'params', []);
 
 
         if ($isRelation) {
@@ -158,7 +158,7 @@ class FoormList extends Foorm
 
     protected function applySearchFilters()
     {
-        $searchFilters = array_get($this->input, 'search_filters', []);
+        $searchFilters = Arr::get($this->input, 'search_filters', []);
 
         foreach ($searchFilters as $searchFilter) {
             $this->applyConstraint($searchFilter);
@@ -177,9 +177,9 @@ class FoormList extends Foorm
 
     protected function applyListOrder()
     {
-        $orderParams = array_get($this->input, 'order_params', []);
+        $orderParams = Arr::get($this->input, 'order_params', []);
 
-        $field = array_get($orderParams, 'field', null);
+        $field = Arr::get($orderParams, 'field', null);
 
         if (!$field || !is_string($field)) {
 
@@ -192,8 +192,8 @@ class FoormList extends Foorm
 
     protected function applyListOrderFromInput($field, $orderParams)
     {
-        $direction = array_get($orderParams, 'direction', 'ASC');
-        $params = array_get($orderParams, 'params', []);
+        $direction = Arr::get($orderParams, 'direction', 'ASC');
+        $params = Arr::get($orderParams, 'params', []);
 
         return $this->formBuilder = $this->buildOrder($this->formBuilder, $field, $direction, $params);
 
@@ -215,14 +215,14 @@ class FoormList extends Foorm
     {
 
 
-        $paginationInput = array_get($this->input, 'pagination', []);
+        $paginationInput = Arr::get($this->input, 'pagination', []);
 
         $perPage =
-            array_get($paginationInput, 'per_page',
-                array_get($this->config, 'per_page', 10)
+            Arr::get($paginationInput, 'per_page',
+                Arr::get($this->config, 'per_page', 10)
             );
 
-        $page = array_get($paginationInput, 'page', 1);
+        $page = Arr::get($paginationInput, 'page', 1);
 
         $paginateSelect = is_array(Arr::get($this->config,'paginate_select',false))
             ? $this->paginateSelect
@@ -231,7 +231,7 @@ class FoormList extends Foorm
 
         if ($perPage < 0) {
             //No pagination: set a fixed big value in order to have the same output structure
-            $perPage = array_get($this->config, 'no_paginate_value', 1000000);
+            $perPage = Arr::get($this->config, 'no_paginate_value', 1000000);
         }
 
 //        Log::info("QUERYLIST::: ".$this->formBuilder->toSql());
@@ -375,7 +375,7 @@ class FoormList extends Foorm
 
 //        count, max, min,  avg, and sum
 
-        $aggregatesArray = array_get($this->config, 'aggregates', []);
+        $aggregatesArray = Arr::get($this->config, 'aggregates', []);
 
 
         $this->formAggregatesData = $this->applyAggregates($this->formAggregatesBuilder, $aggregatesArray);
@@ -398,18 +398,18 @@ class FoormList extends Foorm
     }
 
     protected function setFormMetadataOrder() {
-        $orderParams = array_get($this->input, 'order_params', []);
+        $orderParams = Arr::get($this->input, 'order_params', []);
 
-        $orderField = array_get($orderParams,'field', false);
+        $orderField = Arr::get($orderParams,'field', false);
         if ($orderField !== false) {
             $this->formMetadata['order']['field'] = $orderField;
-            $this->formMetadata['order']['direction'] = array_get($orderParams,'direction', 'ASC');
+            $this->formMetadata['order']['direction'] = Arr::get($orderParams,'direction', 'ASC');
         } else {
             $order = $this->model->getDefaultOrderColumns();
             $orderColumns = array_keys($order);
             $orderDirections = array_values($order);
-            $this->formMetadata['order']['field'] = array_get($orderColumns, 0, 'id');
-            $this->formMetadata['order']['direction'] = array_get($orderDirections, 0, 'ASC');
+            $this->formMetadata['order']['field'] = Arr::get($orderColumns, 0, 'id');
+            $this->formMetadata['order']['direction'] = Arr::get($orderDirections, 0, 'ASC');
         }
 
     }

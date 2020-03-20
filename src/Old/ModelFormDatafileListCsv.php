@@ -16,7 +16,7 @@ class ModelFormDatafileListCsv extends ModelFormListCsv {
 
         parent::__construct($model, $permissionPrefix, $params);
 
-        $datafile_id = array_get($this->params,'datafile_id',-1);
+        $datafile_id = Arr::get($this->params,'datafile_id',-1);
         $this->result->where('datafile_id',$datafile_id);
         $this->result->has('errors');
 

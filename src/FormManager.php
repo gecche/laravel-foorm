@@ -140,7 +140,7 @@ class FormManager
         $snakeModelName = Arr::get($formConfig, 'model', $formNameParts[0]);
 
 
-        $relativeModelName = studly_case($snakeModelName);
+        $relativeModelName = Str::studly($snakeModelName);
         //$fullModelName = $this->defaultConfig['models_namespace'] . $relativeModelName;
         $fullModelName = $finalConfig['models_namespace'] . $relativeModelName;
 
@@ -183,7 +183,7 @@ class FormManager
     protected function getRealFoormClass($formConfig, $relativeModelName, $formNameToCheck)
     {
         $snakeFormName = Arr::get($formConfig, 'form_type', $formNameToCheck);
-        $relativeFormName = studly_case($snakeFormName);
+        $relativeFormName = Str::studly($snakeFormName);
         $fullFormName = $this->defaultConfig['foorms_namespace'] . $relativeModelName . "\\" . $relativeFormName;
 
 

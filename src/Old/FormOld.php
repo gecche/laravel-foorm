@@ -223,16 +223,16 @@ class FormOld implements FormInterface {
 
     public function ajaxListing($listModelName, $key, $pk = 0, $fieldValues = array(), $actionParams = array()) {
 
-        $ajaxListingParams = array_get($this->ajaxListingParams, $key, array());
+        $ajaxListingParams = Arr::get($this->ajaxListingParams, $key, array());
         
-        $listModelName = array_get($ajaxListingParams, 'model', $listModelName);
+        $listModelName = Arr::get($ajaxListingParams, 'model', $listModelName);
         
         if (!$listModelName) {
             throw new Exception('List model name missing');
         }
         
-        $labelColumns = array_get($actionParams, 'description', null);
-        $separator = array_get($actionParams, 'separator', null);
+        $labelColumns = Arr::get($actionParams, 'description', null);
+        $separator = Arr::get($actionParams, 'separator', null);
 
         //$model = new static();
 
@@ -243,22 +243,22 @@ class FormOld implements FormInterface {
         }
 
         if ($labelColumns === null) {
-            $labelColumns = array_get($ajaxListingParams, 'labels', $listModel->getColumnsForSelectList());
+            $labelColumns = Arr::get($ajaxListingParams, 'labels', $listModel->getColumnsForSelectList());
         }
         if (is_string($labelColumns)) {
             $labelColumns = array($labelColumns);
         }
 
         if ($separator === null) {
-            $separator = array_get($ajaxListingParams, 'separator', $listModel->getFieldsSeparator());
+            $separator = Arr::get($ajaxListingParams, 'separator', $listModel->getFieldsSeparator());
         }
 
 
         $listModelBuilder = $listModel;
-        $ajaxListingParamsDB = array_get($ajaxListingParams, 'db', array());
+        $ajaxListingParamsDB = Arr::get($ajaxListingParams, 'db', array());
         foreach ($fieldValues as $field => $value) {
-            $dbField = array_get($ajaxListingParamsDB, $field, array());
-            $listModelBuilder = $listModelBuilder->where(array_get($dbField,'dbField',$field), array_get($dbField,'operator','='), $value);
+            $dbField = Arr::get($ajaxListingParamsDB, $field, array());
+            $listModelBuilder = $listModelBuilder->where(Arr::get($dbField,'dbField',$field), Arr::get($dbField,'operator','='), $value);
         }
 
 
@@ -271,8 +271,8 @@ class FormOld implements FormInterface {
 
     public function setListingItem($result, $listModel, $labelColumns, $separator, $actionParams) {
 
-        $item_all = array_get($actionParams, env('FORM_FILTER_ALL',-99), false);
-        $item_none = array_get($actionParams, env('FORM_ITEM_NONE',-99), false);
+        $item_all = Arr::get($actionParams, env('FORM_FILTER_ALL',-99), false);
+        $item_none = Arr::get($actionParams, env('FORM_ITEM_NONE',-99), false);
 
 
         $ids = $result->lists($listModel->getKeyName())->all();
@@ -326,7 +326,7 @@ class FormOld implements FormInterface {
         $hasManyPrefix = 'saveRelated';
         if (starts_with($name, $hasManyPrefix) && is_array($arguments)) {
 
-            $suffix = studly_case($arguments[0]);
+            $suffix = Str::studly($arguments[0]);
             if (in_array($suffix,['MorphManyAdd'])) {
                 return;
             }

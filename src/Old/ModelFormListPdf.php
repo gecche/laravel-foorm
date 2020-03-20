@@ -34,7 +34,7 @@ class ModelFormListPdf extends ModelFormList {
         $this->setBelongsTos();
 
         $this->setListResult();
-        $this->setSearchFilters(array_get($params,'input',null));
+        $this->setSearchFilters(Arr::get($params,'input',null));
         $this->setOrderResult();
 
 //        $this->totalCount = $this->result->count();
@@ -57,7 +57,7 @@ class ModelFormListPdf extends ModelFormList {
         $this->customizeResult();
 
         $modelName = $this->getModelName();
-        $pdfType = array_get($this->params,'pdfType','default');
+        $pdfType = Arr::get($this->params,'pdfType','default');
         $params = [
             'headers' => $page == 1 ? true : false,
         ];
@@ -83,7 +83,7 @@ class ModelFormListPdf extends ModelFormList {
         $this->setResultParams();
 
         $modelName = $this->getModelName();
-        $pdfType = array_get($this->params,'pdfType','default');
+        $pdfType = Arr::get($this->params,'pdfType','default');
         $pdf = $modelName::getPdfExport($this->result, $this->resultParams, $pdfType);
 
         $this->result = $pdf;

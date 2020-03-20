@@ -53,8 +53,8 @@ class ModelFormDetail extends ModelForm
 
         $this->input = is_array($input) ? $input : Input::all();
 
-        $constraintKey = array_get($this->params, 'constraintKey', false);
-        $constraintValue = array_get($this->params, 'constraintValue', false);
+        $constraintKey = Arr::get($this->params, 'constraintKey', false);
+        $constraintValue = Arr::get($this->params, 'constraintValue', false);
         if ($constraintKey) {
             $this->input[$constraintKey] = $constraintValue;
         }
@@ -101,9 +101,9 @@ class ModelFormDetail extends ModelForm
     {
 
         foreach ($this->belongsTos as $belongsToKey => $belongsToValue) {
-            $saveRelatedName = 'saveRelated' . studly_case($belongsToKey);
-            $saveType = array_get($belongsToValue, 'saveType', 'standard');
-            $saveParams = array_get($belongsToValue, 'saveParams', array());
+            $saveRelatedName = 'saveRelated' . Str::studly($belongsToKey);
+            $saveType = Arr::get($belongsToValue, 'saveType', 'standard');
+            $saveParams = Arr::get($belongsToValue, 'saveParams', array());
 
             if ($saveType == 'standard') {
                 continue;
@@ -116,12 +116,12 @@ class ModelFormDetail extends ModelForm
             if (Config::get('forms.use_field_exists',false) && !array_key_exists($hasManyKey."_exists",$input)) {
                 continue;
             }
-            $saveRelatedName = 'saveRelated' . studly_case($hasManyKey);
+            $saveRelatedName = 'saveRelated' . Str::studly($hasManyKey);
             $hasManyType = $hasManyValue['hasManyType'];
-            $saveType = array_get($hasManyValue, 'saveType', false);
-            $saveParams = array_get($hasManyValue, 'saveParams', array());
+            $saveType = Arr::get($hasManyValue, 'saveType', false);
+            $saveParams = Arr::get($hasManyValue, 'saveParams', array());
             if ($saveType) {
-                $hasManyType = $hasManyType . studly_case($saveType);
+                $hasManyType = $hasManyType . Str::studly($saveType);
             }
             $this->$saveRelatedName($hasManyType, $hasManyKey, $hasManyValue, $input, $saveParams);
         }
@@ -165,11 +165,11 @@ class ModelFormDetail extends ModelForm
             'update' => true,
             'remove' => true,
         ];
-        $actionsToDo = array_get($params, 'actions', array());
+        $actionsToDo = Arr::get($params, 'actions', array());
         $actionsToDo = array_merge($standardActions, $actionsToDo);
 
 
-        foreach (array_get($hasManyInputs, 'status', array()) as $i => $status) {
+        foreach (Arr::get($hasManyInputs, 'status', array()) as $i => $status) {
 
             $inputArray = array();
             foreach (array_keys($hasManyInputs) as $key) {
@@ -180,10 +180,10 @@ class ModelFormDetail extends ModelForm
             $pivotValues = array();
 
             foreach ($pivotFields as $pivotField) {
-                $pivotValues[$pivotField] = array_get($inputArray, $pivotField, null);
+                $pivotValues[$pivotField] = Arr::get($inputArray, $pivotField, null);
             }
 
-            if (array_get($hasManyValue, 'orderKey', false)) {
+            if (Arr::get($hasManyValue, 'orderKey', false)) {
                 $pivotValues[$hasManyValue['orderKey']] = $i;
             }
 
@@ -233,7 +233,7 @@ class ModelFormDetail extends ModelForm
         $pivotModelName = $this->models_namespace . $hasManyValue['pivotModelName'];
 
         $this->model->$hasManyKey()->sync(array());
-        foreach (array_get($hasManyInputs, 'status', array()) as $i => $status) {
+        foreach (Arr::get($hasManyInputs, 'status', array()) as $i => $status) {
 
             $inputArray = array();
             foreach (array_keys($hasManyInputs) as $key) {
@@ -244,10 +244,10 @@ class ModelFormDetail extends ModelForm
             $pivotValues = array();
 
             foreach ($pivotFields as $pivotField) {
-                $pivotValues[$pivotField] = array_get($inputArray, $pivotField, null);
+                $pivotValues[$pivotField] = Arr::get($inputArray, $pivotField, null);
             }
 
-            if (array_get($hasManyValue, 'orderKey', false)) {
+            if (Arr::get($hasManyValue, 'orderKey', false)) {
                 $pivotValues[$hasManyValue['orderKey']] = $i;
             }
 
@@ -274,7 +274,7 @@ class ModelFormDetail extends ModelForm
         $hasManyModelName = $hasManyValue['modelName'];
 
         $this->model->$hasManyKey()->sync(array());
-        foreach (array_get($hasManyInputs, 'id', array()) as $i => $status) {
+        foreach (Arr::get($hasManyInputs, 'id', array()) as $i => $status) {
 
             $inputArray = array();
             foreach (array_keys($hasManyInputs) as $key) {
@@ -290,7 +290,7 @@ class ModelFormDetail extends ModelForm
                     continue;
                 }
 
-                $pivotValues[$pivotField] = array_get($inputArray, $pivotField, null);
+                $pivotValues[$pivotField] = Arr::get($inputArray, $pivotField, null);
 
             }
             $this->model->$hasManyKey()->attach($inputArray['id'], $pivotValues);
@@ -308,7 +308,7 @@ class ModelFormDetail extends ModelForm
 //            }
         }
         // vecchio codice,
-//        foreach (array_get($hasManyInputs, 'status', array()) as $i => $status) {
+//        foreach (Arr::get($hasManyInputs, 'status', array()) as $i => $status) {
 //
 //            $inputArray = array();
 //            foreach (array_keys($hasManyInputs) as $key) {
@@ -324,7 +324,7 @@ class ModelFormDetail extends ModelForm
 //                    continue;
 //                }
 //
-//                $pivotValues[$pivotField] = array_get($inputArray, $pivotField, null);
+//                $pivotValues[$pivotField] = Arr::get($inputArray, $pivotField, null);
 //
 //            }
 //
@@ -367,15 +367,15 @@ class ModelFormDetail extends ModelForm
         $hasManyInputs = $this->filterInputForGuardedMain($hasManyInputs);
         $hasManyModelName = $hasManyValue['modelName'];
 
-        foreach (array_get($hasManyInputs, 'status', array()) as $i => $status) {
+        foreach (Arr::get($hasManyInputs, 'status', array()) as $i => $status) {
 
             $inputArray = array();
             foreach (array_keys($hasManyInputs) as $key) {
-                $inputArray[$key] = array_get($hasManyInputs[$key], $i);
+                $inputArray[$key] = Arr::get($hasManyInputs[$key], $i);
             }
 
 
-            if (array_get($hasManyValue, 'orderKey', false)) {
+            if (Arr::get($hasManyValue, 'orderKey', false)) {
                 $inputArray[$hasManyValue['orderKey']] = $i;
             }
             unset($inputArray['status']);
@@ -421,7 +421,7 @@ class ModelFormDetail extends ModelForm
             $hasManyModel->save();
         }
 
-        foreach (array_get($hasManyInputs, 'status', array()) as $i => $status) {
+        foreach (Arr::get($hasManyInputs, 'status', array()) as $i => $status) {
 
             $inputArray = array();
             foreach (array_keys($hasManyInputs) as $key) {
@@ -478,7 +478,7 @@ class ModelFormDetail extends ModelForm
                 $morphIdAttribute = $hasManyAttribute;
             }
         }
-        foreach (array_get($hasManyInputs, 'status', array()) as $i => $status) {
+        foreach (Arr::get($hasManyInputs, 'status', array()) as $i => $status) {
 
             $inputArray = array();
             foreach (array_keys($hasManyInputs) as $key) {
@@ -633,13 +633,13 @@ class ModelFormDetail extends ModelForm
 
         $formItemNone = env('FORM_ITEM_NONE', -99);
         foreach ($this->resultParams as $paramKey => $paramValue) {
-            if (!is_array($paramValue) || !array_key_exists('options', $paramValue) || array_get($this->result, $paramKey)) {
+            if (!is_array($paramValue) || !array_key_exists('options', $paramValue) || Arr::get($this->result, $paramKey)) {
                 continue;
             }
-            $options = array_get($paramValue, 'options', []);
-            $forSelectListConfig = array_get($this->forSelectListConfig, $paramKey,
+            $options = Arr::get($paramValue, 'options', []);
+            $forSelectListConfig = Arr::get($this->forSelectListConfig, $paramKey,
                 $this->forSelectListConfig['default']);
-            $onlyValueSelectedDetail = array_get($forSelectListConfig,'onlyValueSelectedDetail',true);
+            $onlyValueSelectedDetail = Arr::get($forSelectListConfig,'onlyValueSelectedDetail',true);
 
             if (array_key_exists($formItemNone, $options))
                 unset($options[$formItemNone]);
@@ -665,8 +665,8 @@ class ModelFormDetail extends ModelForm
 
         }
 
-        $constraintKey = array_get($this->params, 'constraintKey', false);
-        $constraintValue = array_get($this->params, 'constraintValue', false);
+        $constraintKey = Arr::get($this->params, 'constraintKey', false);
+        $constraintValue = Arr::get($this->params, 'constraintValue', false);
         if ($constraintKey && array_key_exists($constraintKey, $this->result)) {
             $this->result[$constraintKey] = $constraintValue;
         }
@@ -716,8 +716,8 @@ class ModelFormDetail extends ModelForm
              * AGGIUNTE SELECT PER BELONGS TO DENTRO HAS MANIES: DA METTERE NELLA VARIABILE FIELD PARAMS DEL MODELLO
              */
 
-            if (array_get($this->resultParams, $key, false)) {
-                foreach (array_get($this->resultParams[$key], 'belongsTo', []) as $belongsToField => $belongsToRelativeModelName) {
+            if (Arr::get($this->resultParams, $key, false)) {
+                foreach (Arr::get($this->resultParams[$key], 'belongsTo', []) as $belongsToField => $belongsToRelativeModelName) {
                     $belongsToModelName = $this->models_namespace . $belongsToRelativeModelName;
                     $options = $belongsToModelName::getForSelectList();
                     $value['fields'][$belongsToField]['options'] = $options;
@@ -730,7 +730,7 @@ class ModelFormDetail extends ModelForm
              */
 
             //if ($value['saveType'] === 'standard')  {
-            if (array_get($value, 'saveType', false) === 'standard') {
+            if (Arr::get($value, 'saveType', false) === 'standard') {
                 $value['hasManyThroughData'] = $modelName::autoComplete();
             }
 
@@ -750,7 +750,7 @@ class ModelFormDetail extends ModelForm
             $value['options_order'] = array_keys($options);
 
             //AGGIUNGO DATI MODELLO PER AD ESEMPIO AUTOCOMPLETE
-            $value['modelData'] = array_get($this->result,$value['relationName'],[]);
+            $value['modelData'] = Arr::get($this->result,$value['relationName'],[]);
             $this->resultParams[$key] = $value;
         }
         Cache::forever($cacheKey, $this->resultParams);
@@ -764,14 +764,14 @@ class ModelFormDetail extends ModelForm
         $otherParams = [];
         $fieldParams = $this->model->getFieldParams();
         $keySelectListParams = false;
-        $keyParams = array_get($fieldParams, $key, false);
+        $keyParams = Arr::get($fieldParams, $key, false);
         if (is_array($keyParams)) {
-            $keySelectListParams = array_get($keyParams, 'formSelectList', false);
+            $keySelectListParams = Arr::get($keyParams, 'formSelectList', false);
         }
         if (is_array($keySelectListParams)) {
-            $separator = array_get($keySelectListParams, 'separator', null);
-            $columns = array_get($keySelectListParams, 'columns', null);
-            $otherParams = array_get($keySelectListParams, 'params', []);
+            $separator = Arr::get($keySelectListParams, 'separator', null);
+            $columns = Arr::get($keySelectListParams, 'columns', null);
+            $otherParams = Arr::get($keySelectListParams, 'params', []);
         }
         return array($columns, $separator, $otherParams);
     }
@@ -783,7 +783,7 @@ class ModelFormDetail extends ModelForm
 
         /*
          * non serve perché ho aggiunto le options automatiche sui booleani
-        if (array_get($this->resultParams,'attivo',false)) {
+        if (Arr::get($this->resultParams,'attivo',false)) {
             $this->resultParams['attivo']['options'] = array(
                 0 => ucfirst(Lang::get("app.no")),
                 1 => ucfirst(Lang::get("app.yes"))
@@ -791,21 +791,21 @@ class ModelFormDetail extends ModelForm
         }
         */
 
-        if (array_get($this->resultParams, 'newsletter_registered', false)) {
+        if (Arr::get($this->resultParams, 'newsletter_registered', false)) {
             $this->resultParams['newsletter_registered']['options'] = array(
                 0 => ucfirst(Lang::get("app.no")),
                 1 => ucfirst(Lang::get("app.yes"))
             );
         }
 
-        if (array_get($this->resultParams, 'riservato', false)) {
+        if (Arr::get($this->resultParams, 'riservato', false)) {
             $this->resultParams['riservato']['options'] = array(
                 0 => ucfirst(Lang::get("app.no")),
                 1 => ucfirst(Lang::get("app.yes"))
             );
         }
 
-        if (array_get($this->resultParams, 'fotos', false)) {
+        if (Arr::get($this->resultParams, 'fotos', false)) {
             $this->resultParams['fotos']['managed_fields'] = array(
                 'nome',
                 'descrizione',
