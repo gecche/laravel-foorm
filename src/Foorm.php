@@ -448,7 +448,7 @@ abstract class Foorm
             return $this->dbHelper->listEnumValues($fieldKey,$this->getModel()->getTable());
         }
 
-        if (starts_with($options, 'belongsto:')) {
+        if (Str::startsWith($options, 'belongsto:')) {
 
             $relationValue = explode(':',$options);
             $relationModelName = $relationValue[1];

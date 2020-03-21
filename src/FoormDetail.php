@@ -3,11 +3,7 @@
 namespace Gecche\Foorm;
 
 
-use Gecche\DBHelper\Facades\DBHelper;
-use Gecche\Breeze\Breeze;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -635,7 +631,7 @@ class FoormDetail extends Foorm
     {
 
         $hasManyPrefix = 'saveRelated';
-        if (starts_with($name, $hasManyPrefix) && is_array($arguments)) {
+        if (Str::startsWith($name, $hasManyPrefix) && is_array($arguments)) {
 
             $suffix = Str::studly($arguments[0]);
             if (in_array($suffix, ['BelongsTo','MorphManyAdd'])) {
@@ -650,7 +646,7 @@ class FoormDetail extends Foorm
         $prefixes = ['ajaxListing'];
 
         foreach ($prefixes as $prefix) {
-            if (starts_with($name, $prefix)) {
+            if (Str::startsWith($name, $prefix)) {
                 return call_user_func_array(array($this, $prefix), $arguments);
             }
         }

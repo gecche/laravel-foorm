@@ -624,7 +624,7 @@ class FoormSearch extends Foorm
     {
 
         $hasManyPrefix = 'saveRelated';
-        if (starts_with($name, $hasManyPrefix) && is_array($arguments)) {
+        if (Str::startsWith($name, $hasManyPrefix) && is_array($arguments)) {
 
             $suffix = Str::studly($arguments[0]);
             if (in_array($suffix, ['BelongsTo','MorphManyAdd'])) {
@@ -639,7 +639,7 @@ class FoormSearch extends Foorm
         $prefixes = ['ajaxListing'];
 
         foreach ($prefixes as $prefix) {
-            if (starts_with($name, $prefix)) {
+            if (Str::startsWith($name, $prefix)) {
                 return call_user_func_array(array($this, $prefix), $arguments);
             }
         }
