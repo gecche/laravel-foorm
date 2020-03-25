@@ -227,7 +227,7 @@ class FoormDetail extends Foorm
 
         $input = is_array($input) ? $input : $this->input;
 
-        $finalSettings = $this->getValidationSettings($settings);
+        $finalSettings = $this->getValidationSettings($input,$settings);
         $rules = Arr::get($finalSettings, 'rules', []);
         $customMessages = Arr::get($finalSettings, 'customMessages', []);
         $customAttributes = Arr::get($finalSettings, 'customAttributes', []);
@@ -235,7 +235,7 @@ class FoormDetail extends Foorm
 
         if (!$this->validator->passes()) {
             $errors = $this->validator->errors()->getMessages();
-            $errors = array_flatten($errors);
+            $errors = Arr::flatten($errors);
             throw new \Exception(json_encode($errors));
         }
 
@@ -243,9 +243,9 @@ class FoormDetail extends Foorm
     }
 
 
-    public function getValidationSettings($rules)
+    public function getValidationSettings($input,$rules)
     {
-        $this->setValidationSettings($rules);
+        $this->setValidationSettings($input,$rules);
         return $this->validationSettings;
     }
 
@@ -303,7 +303,7 @@ class FoormDetail extends Foorm
     }
 
 
-    public function setValidationSettings($rules = null)
+    public function setValidationSettings($input,$rules = null)
     {
 
         if (is_array($rules)) {
@@ -373,18 +373,21 @@ class FoormDetail extends Foorm
 
         //EVENTUALMENTE QUI AGGIUNGERE UN MODO PER SALVARE I BELONGS TO AGGIUNTI A RUN-TIME (MA BOH)
 
-        $saved = $this->model->save();
-
-        if (!$saved) {
-            throw new \Exception($this->model->errors());
-        }
-
-        $this->model->fresh();
+        $saved = $this->saveModel($this->inputForSave);
 
         //DA FARE
         $this->saveRelated($this->inputForSave);
 
         return $saved;
+    }
+
+
+    protected function saveModel($input) {
+        $saved = $this->model->save();
+        if (!$saved) {
+            throw new \Exception($this->model->errors());
+        }
+        $this->model = $this->model->fresh();
     }
 
 
