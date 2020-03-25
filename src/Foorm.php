@@ -450,12 +450,16 @@ abstract class Foorm
 
         if (Str::startsWith($options, 'relation:')) {
 
-            Log::info(print_r($this->relations,true));
+            Log::info(print_r($this->getModelName(),true));
 
+            /*
+             * Prendo tutte le relazioni del modello anche quelle non in configurazione
+             */
+            $relations = ($this->getModelName())::getRelationsData();
             $relationValue = explode(':',$options);
             $relationName = $relationValue[1];
 
-            $relationModelName = Arr::get(Arr::get($this->relations,$relationName,[]),'related');
+            $relationModelName = Arr::get(Arr::get($relations,$relationName,[]),'related');
 
             if (!$relationModelName) {
                 throw new \Exception("Relation " . $relationName . " not found in compiling options.");
