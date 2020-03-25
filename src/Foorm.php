@@ -448,14 +448,20 @@ abstract class Foorm
             return $this->dbHelper->listEnumValues($fieldKey,$this->getModel()->getTable());
         }
 
-        if (Str::startsWith($options, 'belongsto:')) {
+        if (Str::startsWith($options, 'relation:')) {
+
+            Log::info(print_r($this->relations,true));
 
             $relationValue = explode(':',$options);
-            $relationModelName = $relationValue[1];
+            $relationName = $relationValue[1];
 
-            $fullRelationModelName = $this->getModelsNamespace().$relationModelName;
+            $relationModelName = Arr::get(Arr::get($this->relations,$relationName,[]),'related');
 
-            $relationModel = new $fullRelationModelName;
+            if (!$relationModelName) {
+                throw new \Exception("Relation " . $relationName . " not found in compiling options.");
+            }
+
+            $relationModel = new $relationModelName;
             $options = $relationModel->getForSelectList();
 
             return $options;
