@@ -64,7 +64,6 @@ return [
     'bool-true-label' => 'Sì',
     'null-value' => -1,
     'null-label' => 'Seleziona...',
-    'any-value' => -1,
     'any-label' => 'Qualsiasi',
     'no-value' => -2,
     'no-label' => 'Nessun valore',

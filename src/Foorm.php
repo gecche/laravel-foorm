@@ -547,7 +547,7 @@ abstract class Foorm
     public function filterPredefinedValuesFromInput($value) {
 
         $nullValue = $this->config['null-value'];
-        $anyValue = $this->config['any-value'];
+        $anyValue = $this->config['null-value'];
         $noValue = $this->config['no-value'];
 
         if (is_string($value)) {
@@ -578,8 +578,11 @@ abstract class Foorm
     protected function _setFormMetadataFields($fields = []) {
 
 
+        /*
+         * AnyValue e NullValue convergono su NullValue
+         */
         $defaultOptionsValues = [
-            'any-value' => $this->config['any-value'],
+            'any-value' => $this->config['null-value'],
             'any-label' => $this->config['any-label'],
             'no-value' => $this->config['no-value'],
             'no-label' => $this->config['no-label'],

@@ -138,15 +138,11 @@ class FormManager
         $finalConfig = array_replace_recursive($defaultConfig, $formConfig);
 
         $snakeModelName = Arr::get($formConfig, 'model', $formNameParts[0]);
-
-
         $relativeModelName = Str::studly($snakeModelName);
-        //$fullModelName = $this->defaultConfig['models_namespace'] . $relativeModelName;
         $fullModelName = $finalConfig['models_namespace'] . $relativeModelName;
 
         if (!class_exists($fullModelName))
             throw new \InvalidArgumentException("Model class $fullModelName does not exists");
-
 
         $finalConfig = array_merge($finalConfig,$this->getRealFoormClass($formConfig, $relativeModelName, $formNameParts[1]));
 
@@ -156,7 +152,16 @@ class FormManager
 
         foreach (Arr::get($formConfig,'dependencies',[]) as $dependencyKey => $dependencyFormType) {
             $dependencyConfig = $this->getFormTypeConfig($formNameParts[0].'.'.$dependencyFormType);
+
+
+            $dependencyConfig = array_replace_recursive($defaultConfig, $dependencyConfig);
             $dependencyConfig = array_merge($dependencyConfig,$this->getRealFoormClass($formConfig, $relativeModelName, $dependencyFormType));
+
+            $dependencyConfig['model'] = $snakeModelName;
+            $dependencyConfig['relative_model_name'] = $relativeModelName;
+            $dependencyConfig['full_model_name'] = $fullModelName;
+
+
             $finalConfig['dependencies'][$dependencyKey] = $dependencyConfig;
         }
 
@@ -184,7 +189,7 @@ class FormManager
     {
         $snakeFormName = Arr::get($formConfig, 'form_type', $formNameToCheck);
         $relativeFormName = Str::studly($snakeFormName);
-        $fullFormName = $this->defaultConfig['foorms_namespace'] . $relativeModelName . "\\" . $relativeFormName;
+        $fullFormName = $this->defaultConfig['foorms_namespace'] . $relativeModelName . "\\Foorm" . $relativeFormName;
 
 
         if (!class_exists($fullFormName)) {//Example: exists App\Foorm\User\List class?
@@ -307,9 +312,9 @@ class FormManager
                 continue;
             }
 
-
-            $input['search_filters'][] = [
-                'field' => substr($searchInputKey, 2),
+            $searchFieldName = substr($searchInputKey, 2);
+            $input['search_filters'][$searchFieldName] = [
+                'field' => $searchFieldName,
                 'op' => Arr::get($searchInputs, $searchInputKey . '_operator', '='),
                 'value' => $searchInputValue,
             ];
@@ -324,19 +329,7 @@ class FormManager
             unset($input['order_direction']);
         }
 
-        foreach ($searchInputs as $searchInputKey => $searchInputValue) {
-            unset($input[$searchInputKey]);
-            if (Str::endsWith($searchInputKey, '_operator')) {
-                continue;
-            }
 
-
-            $input['search_filters'][] = [
-                'field' => substr($searchInputKey, 2),
-                'op' => Arr::get($searchInputs, $searchInputKey . '_operator', '='),
-                'value' => $searchInputValue,
-            ];
-        }
 
         unset($input['page']);
         unset($input['per_page']);

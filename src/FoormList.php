@@ -113,19 +113,19 @@ class FoormList extends Foorm
 
         $relation = null;
         $isRelation = false;
-        $fieldExploded = explode('.', $field);
+        $fieldExploded = explode('|', $field);
         if (count($fieldExploded) > 1) {
             $isRelation = true;
             $relation = $fieldExploded[0];
             unset($fieldExploded[0]);
             $field = implode('.', $fieldExploded);
 
-            $relationData = Arr::get($this->relations, $relation, []);
-            if (!array_key_exists('modelName', $relationData)) {
+            $relationData = Arr::get($this->model->getRelationsData(), $relation, []);
+            if (!array_key_exists('related', $relationData)) {
                 return $this->formBuilder;
             }
 
-            $relationModelName = $relationData['modelName'];
+            $relationModelName = $relationData['related'];
             $relationModel = new $relationModelName;
             $table = Arr::get($constraintArray, 'table', $relationModel->getTable());
             $db = Arr::get($constraintArray, 'db',config('database.connections.' . $relationModel->getConnectionName() . '.database'));
@@ -158,13 +158,47 @@ class FoormList extends Foorm
 
     protected function applySearchFilters()
     {
-        $searchFilters = Arr::get($this->input, 'search_filters', []);
+        $searchFilters = $this->buildSearchFilters();
 
         foreach ($searchFilters as $searchFilter) {
             $this->applyConstraint($searchFilter);
         }
     }
 
+    protected function buildSearchFilters() {
+
+        $inputSearchFilters = Arr::get($this->input, 'search_filters', []);
+
+        $dependentSearchForm = Arr::get($this->dependentForms,'search');
+
+        if (!$dependentSearchForm) {
+            return $inputSearchFilters;
+        }
+
+        return $this->buildSearchFiltersFromDependencies($inputSearchFilters,$dependentSearchForm);
+
+    }
+
+    protected function buildSearchFiltersFromDependencies($inputSearchFilters,$searchForm) {
+
+        $searchFilters = [];
+
+        $searchConfig = $searchForm->getConfig();
+
+        foreach (Arr::get($searchConfig,'fields',[]) as $searchFieldName => $searchFieldConfig) {
+            if (array_key_exists($searchFieldName,$inputSearchFilters)) {
+                $searchFilters[] = [
+                    'field' => $searchFieldName,
+                    'op' => Arr::get($searchFieldConfig, 'operator', '='),
+                    'value' => $inputSearchFilters[$searchFieldName]['value']
+                ];
+            }
+        }
+
+
+        return $searchFilters;
+
+    }
 
     /**
      * @param \Closure|string $builder
@@ -253,8 +287,6 @@ class FoormList extends Foorm
 
             $this->formData = $this->finalizeDataStandard();
         }
-
-        return $this->formData;
 
     }
 
