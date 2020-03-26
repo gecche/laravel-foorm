@@ -87,11 +87,14 @@ class FoormDetail extends Foorm
 
             if (!array_key_exists($configKey, $modelData)) {
                 if ($level == 1) {
-                    $modelData[$configKey] = $configData[$configKey];
+                    $modelData[$configKey] = $configField;
                 } else {
                     continue;
                 }
+            } elseif (is_null($modelData[$configKey]) && $configField == $this->config['null-value']) {
+                $modelData[$configKey] = $configField;
             }
+
 
             if (is_array($configField)) {
 
@@ -122,7 +125,7 @@ class FoormDetail extends Foorm
         foreach ($modelFieldsKeys as $fieldKey) {
             $modelFields[$fieldKey] = array_key_exists($fieldKey, $extraDefaults)
                 ? $extraDefaults[$fieldKey]
-                : Arr::get($this->config['fields'][$fieldKey], 'default');
+                : $this->guessDefaultForField($fieldKey,$this->config['fields'][$fieldKey]);
         }
 
         $configRelations = array_keys(Arr::get($this->config, 'relations', []));
@@ -149,7 +152,7 @@ class FoormDetail extends Foorm
         foreach ($modelFieldsKeys as $fieldKey) {
             $modelFields[$fieldKey] = array_key_exists($fieldKey, $extraDefaults)
                 ? $extraDefaults[$fieldKey]
-                : Arr::get($relationConfig['fields'][$fieldKey], 'default');
+                : $this->guessDefaultForField($fieldKey,$relationConfig['fields'][$fieldKey]);
         }
 
         $configRelations = array_keys(Arr::get($relationConfig, 'relations', []));
@@ -168,6 +171,17 @@ class FoormDetail extends Foorm
 
     }
 
+    protected function guessDefaultForField($fieldKey,$fieldConfig) {
+
+        $defaultValue = Arr::get($fieldConfig, 'default');
+
+        if (is_null($defaultValue) && Arr::get($fieldConfig,'options')) {
+            $defaultValue = $this->config['null-value'];
+        }
+
+        return $defaultValue;
+
+    }
 
     //SOLO AL LIVELLO DEL MODELLO PRINCIPALE
     protected function setFixedConstraints($data)

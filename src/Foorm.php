@@ -96,7 +96,12 @@ abstract class Foorm
 
         $this->prepareRelationsData();
 
+        $this->init();
 
+    }
+
+    protected function init() {
+        return;
     }
 
     /**
@@ -466,13 +471,23 @@ abstract class Foorm
             }
 
             $relationModel = new $relationModelName;
-            $options = $relationModel->getForSelectList();
+            $options = $this->getForSelectList($relationName,$relationModel);
 
             return $options;
         }
 
         return [];
 
+    }
+
+
+    protected function getForSelectList($relationName,$relationModel) {
+        return $relationModel->getForSelectList(null, null, [], null, null);
+    }
+
+
+    public function createOptionsOrder($fieldKey,$fieldValue) {
+        return array_keys($fieldValue['options']);
     }
 
     protected function setPredefinedOption($type ,$fieldValue, $options, $hasPredefinedOption, $defaultOptionsValues)
@@ -594,9 +609,11 @@ abstract class Foorm
                     $options = $this->setPredefinedOption('no', $fieldValue, $options, $hasNullOption, $defaultOptionsValues);
                 }
 
-                $fieldValue['options'] = $options
-                ;
+                $fieldValue['options'] = $options;
+
                 unset($fieldValue['nulloption']);
+
+                $fieldValue['options_order'] = $this->createOptionsOrder($fieldKey,$fieldValue);
             }
 
             $fields[$fieldKey] = $fieldValue;
