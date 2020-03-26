@@ -30,10 +30,8 @@ trait FoormDetailSearchTrait
 
         if ($finalizationFunc instanceof \Closure) {
             $this->formData = $finalizationFunc($this->formData);
-            return $this->formData;
+            return;
         }
-
-        return $this->formData;
 
     }
 

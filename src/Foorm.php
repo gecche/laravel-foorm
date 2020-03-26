@@ -269,12 +269,10 @@ abstract class Foorm
             $relationConfig['min_items'] = 0;
             switch ($relationFromModel[0]) {
                 case Breeze::BELONGS_TO_MANY:
-
-                    break;
                 case Breeze::MORPH_MANY:
-
-                    break;
                 case Breeze::HAS_MANY:
+                case Breeze::HAS_MANY_THROUGH:
+                case Breeze::MORPH_TO_MANY:
                     break;
                 case Breeze::HAS_ONE:
                     $relationConfig['max_items'] = 1;
