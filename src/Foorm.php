@@ -331,7 +331,7 @@ abstract class Foorm
 
             switch ($relationFromModel[0]) {
                 case Breeze::BELONGS_TO:
-//                    $foreignKey = Arr::get($relations[$relationName], 'foreignKey', snake_case($relationName) . '_id');
+//                    $foreignKey = Arr::get($relations[$relationName], 'foreignKey', Str::snake($relationName) . '_id');
                     $relationConfig['relationName'] = $relationName;
                     break;
                 default:
