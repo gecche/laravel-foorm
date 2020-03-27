@@ -5,7 +5,7 @@ namespace Gecche\Foorm;
 
 use Illuminate\Support\Arr;
 
-trait FoormDetailSearchTrait
+trait FoormSingleTrait
 {
 
     /**

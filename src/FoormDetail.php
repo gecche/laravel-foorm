@@ -11,7 +11,7 @@ class FoormDetail extends Foorm
 {
 
     use ConstraintBuilderTrait;
-    use FoormDetailSearchTrait;
+    use FoormSingleTrait;
 
     protected $extraDefaults = [];
 

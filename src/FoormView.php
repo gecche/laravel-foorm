@@ -3,7 +3,7 @@
 namespace Gecche\Foorm;
 
 
-class FoormSearch extends Foorm
+class FoormView extends Foorm
 {
 
     use FoormSingleTrait;
