@@ -36,11 +36,12 @@ class MultiDelete extends FoormAction
 
     protected function checkModels() {
 
-        $countModels = ($this->modelName)::whereIn($this->model->getKey(),$this->modelKeys)
+        $modelName = $this->foorm->getModelName();
+        $countModels = $modelName::whereIn($this->model->getKeyName(),$this->modelKeys)
             ->count();
 
         if ($countModels <= 0 || $countModels != count($this->modelKeys)) {
-            throw new \Exception("Some or all models not found, keys: " . implode(',',$this->modelKeys));
+            throw new \Exception("Some or all " . $modelName . " models to be deleted not found, keys: " . implode(',',$this->modelKeys));
         }
 
     }
@@ -52,9 +53,10 @@ class MultiDelete extends FoormAction
 
     protected function deleteRelations() {
 
+        $modelName = $this->foorm->getModelName();
         foreach ($this->modelKeys as $modelKey) {
 
-            $model = ($this->modelName)::find($modelKey);
+            $model = $modelName::find($modelKey);
 
             foreach ($this->foorm->getRelations() as $relationName => $relationConfig) {
                 $model->$relationName()->delete();

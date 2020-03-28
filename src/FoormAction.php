@@ -110,9 +110,10 @@ abstract class FoormAction
 
     public function filterPredefinedValuesFromInput($value) {
 
-        $nullValue = $this->config['null-value'];
-        $anyValue = $this->config['null-value'];
-        $noValue = $this->config['no-value'];
+        $foormConfig = $this->foorm->getConfig();
+        $nullValue = $foormConfig['null-value'];
+        $anyValue = $foormConfig['null-value'];
+        $noValue = $foormConfig['no-value'];
 
         if (is_string($value)) {
           if (in_array($value,[$nullValue,$anyValue])) {

@@ -41,7 +41,7 @@ class FoormManager
 
     protected $foorm;
 
-    protected $formAction;
+    protected $foormAction;
 
     protected $params;
 
