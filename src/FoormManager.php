@@ -10,6 +10,8 @@ use Illuminate\Support\Str;
 class FoormManager
 {
 
+    protected $baseConfig;
+
     /**
      * @var Request
      */
@@ -18,17 +20,17 @@ class FoormManager
     /**
      * @var string
      */
-    protected $formName;
+    protected $foormName;
 
     /**
      * @var string
      */
-    protected $formModel;
+    protected $foormModel;
 
     /**
      * @var string
      */
-    protected $formType;
+    protected $foormType;
     /**
      * @var array
      */
@@ -50,15 +52,12 @@ class FoormManager
     protected $actionConfig;
 
 
-    /**
-     * FormList constructor.
-     * @param array $input
-     * @param Breeze $model
-     * @param array $params
-     */
-    public function __construct($formName, Request $request, $params = [])
-    {
 
+    /**
+     * @return mixed
+     */
+    public function getForm($formName, Request $request, $params = [])
+    {
         $formNameParts = explode('.', $formName);
         if (count($formNameParts) != 2) {
             throw new \InvalidArgumentException('A foorm name should be of type "<FORMNAME>.<FORMTYPE>".');
@@ -71,9 +70,21 @@ class FoormManager
 
         $this->request = $request;
         $this->buildParams($params);
-        $this->setDefaultConfig();
         $this->getConfig();
         $this->setModel();
+        $this->setForm();
+        return $this->foorm;
+    }
+    /**
+     * FormList constructor.
+     * @param array $input
+     * @param Breeze $model
+     * @param array $params
+     */
+    public function __construct($baseConfig)
+    {
+
+        $this->baseConfig = $baseConfig;
 
 
     }
@@ -89,7 +100,7 @@ class FoormManager
     /**
      * @return string
      */
-    public function getFormName()
+    public function getFoormName()
     {
         return $this->foormName;
     }
@@ -127,35 +138,18 @@ class FoormManager
 
     }
 
-
-    public function setDefaultConfig($defaultConfig = null)
+    
+    public function getConfig()
     {
 
-
-        if (is_null($defaultConfig)) {
-            $defaultConfig = config('foorm', []);
-        }
-
-        $defaultConfig['models_namespace'] = Arr::get($defaultConfig, 'models_namespace', "App\\");
-        $defaultConfig['foorms_namespace'] = Arr::get($defaultConfig, 'foorms_namespace', "App\\Foorm\\");
-        $defaultConfig['foorms_defaults_namespace'] = Arr::get($defaultConfig, 'foorms_defaults_namespace', "Gecche\\Foorm\\");
+        $defaultConfig = $this->baseConfig;
 
         $typeDefaults = Arr::get(Arr::get($defaultConfig,'types_defaults',[]),$this->foormType,[]);
 
         unset($defaultConfig['types_defaults']);
 
         $defaultConfig = array_merge($defaultConfig,$typeDefaults);
-
-
-        $this->defaultConfig = $defaultConfig;
-
-    }
-
-    public function getConfig()
-    {
-
-        $defaultConfig = $this->defaultConfig;
-
+        
         $formConfig = $this->getFormTypeConfig($this->foormName);
 
         $finalConfig = array_replace_recursive($defaultConfig, $formConfig);
@@ -212,14 +206,14 @@ class FoormManager
     {
         $snakeFormName = Arr::get($formConfig, 'form_type', $formNameToCheck);
         $relativeFormName = Str::studly($snakeFormName);
-        $fullFormName = $this->defaultConfig['foorms_namespace'] . $relativeModelName . "\\Foorm" . $relativeFormName;
+        $fullFormName = $this->baseConfig['foorms_namespace'] . $relativeModelName . "\\Foorm" . $relativeFormName;
 
 
         if (!class_exists($fullFormName)) {//Example: exists App\Foorm\User\List class?
 
-            $fullFormName = $this->defaultConfig['foorms_namespace'] . $relativeFormName;
+            $fullFormName = $this->baseConfig['foorms_namespace'] . $relativeFormName;
             if (!class_exists($fullFormName)) {//Example: exists App\Foorm\List class?
-                $fullFormName = $this->defaultConfig['foorms_defaults_namespace'] . 'Foorm' . $relativeFormName;
+                $fullFormName = $this->baseConfig['foorms_defaults_namespace'] . 'Foorm' . $relativeFormName;
 
                 if (!class_exists($fullFormName)) {//Example: exists Gecche\Foorm\List class?
                     throw new \InvalidArgumentException("Foorm class not found");
@@ -244,15 +238,15 @@ class FoormManager
 
         $relativeFormName = Arr::get($this->config,'relative_form_name');
         $relativeModelName = Arr::get($this->config,'relative_model_name');
-        $fullFormActionName = $this->defaultConfig['foorms_namespace'] . $relativeModelName
+        $fullFormActionName = $this->baseConfig['foorms_namespace'] . $relativeModelName
             . "\\Actions\\Foorm" . $relativeFormName . Str::studly($action);
 
 
         if (!class_exists($fullFormActionName)) {//Example: exists App\Foorm\User\List class?
 
-            $fullFormActionName = $this->defaultConfig['foorms_namespace'] . "Actions\\" . Str::studly($action);
+            $fullFormActionName = $this->baseConfig['foorms_namespace'] . "Actions\\" . Str::studly($action);
             if (!class_exists($fullFormActionName)) {//Example: exists App\Foorm\List class?
-                $fullFormActionName = $this->defaultConfig['foorms_defaults_namespace']
+                $fullFormActionName = $this->baseConfig['foorms_defaults_namespace']
                     . "Actions\\" . Str::studly($action);
 
                 if (!class_exists($fullFormActionName)) {//Example: exists Gecche\Foorm\List class?
@@ -396,16 +390,7 @@ class FoormManager
         return $this->params;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getForm()
-    {
-        if (!$this->foorm) {
-            $this->setForm();
-        }
-        return $this->foorm;
-    }
+
 
     /**
      * @return mixed
