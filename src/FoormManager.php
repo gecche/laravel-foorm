@@ -41,9 +41,6 @@ class FoormManager
 
     protected $model;
 
-    protected $foorm;
-
-    protected $foormAction;
 
     protected $params;
 
@@ -52,11 +49,10 @@ class FoormManager
     protected $actionConfig;
 
 
-
     /**
      * @return mixed
      */
-    public function getForm($formName, Request $request, $params = [])
+    public function getFoorm($formName, Request $request, $params = [])
     {
         $formNameParts = explode('.', $formName);
         if (count($formNameParts) != 2) {
@@ -72,9 +68,10 @@ class FoormManager
         $this->buildParams($params);
         $this->getConfig();
         $this->setModel();
-        $this->setForm();
-        return $this->foorm;
+
+        return $this->setFoorm();
     }
+
     /**
      * FormList constructor.
      * @param array $input
@@ -106,13 +103,15 @@ class FoormManager
     }
 
 
-    public function buildParams($params) {
+    public function buildParams($params)
+    {
 //        $this->setFixedConstraintsToParams($params);
         $this->params = $params;
     }
 
-    protected function setFixedConstraintsToParams($params) {
-        if (is_array(Arr::get($params,'fixed_constraints'))) {
+    protected function setFixedConstraintsToParams($params)
+    {
+        if (is_array(Arr::get($params, 'fixed_constraints'))) {
             return $params;
         }
 
@@ -138,18 +137,18 @@ class FoormManager
 
     }
 
-    
+
     public function getConfig()
     {
 
         $defaultConfig = $this->baseConfig;
 
-        $typeDefaults = Arr::get(Arr::get($defaultConfig,'types_defaults',[]),$this->foormType,[]);
+        $typeDefaults = Arr::get(Arr::get($defaultConfig, 'types_defaults', []), $this->foormType, []);
 
         unset($defaultConfig['types_defaults']);
 
-        $defaultConfig = array_merge($defaultConfig,$typeDefaults);
-        
+        $defaultConfig = array_merge($defaultConfig, $typeDefaults);
+
         $formConfig = $this->getFormTypeConfig($this->foormName);
 
         $finalConfig = array_replace_recursive($defaultConfig, $formConfig);
@@ -161,18 +160,18 @@ class FoormManager
         if (!class_exists($fullModelName))
             throw new \InvalidArgumentException("Model class $fullModelName does not exists");
 
-        $finalConfig = array_merge($finalConfig,$this->getRealFoormClass($formConfig, $relativeModelName, $this->foormType));
+        $finalConfig = array_merge($finalConfig, $this->getRealFoormClass($formConfig, $relativeModelName, $this->foormType));
 
         $finalConfig['model'] = $snakeModelName;
         $finalConfig['relative_model_name'] = $relativeModelName;
         $finalConfig['full_model_name'] = $fullModelName;
 
-        foreach (Arr::get($formConfig,'dependencies',[]) as $dependencyKey => $dependencyFormType) {
-            $dependencyConfig = $this->getFormTypeConfig($this->foormModel.'.'.$dependencyFormType);
+        foreach (Arr::get($formConfig, 'dependencies', []) as $dependencyKey => $dependencyFormType) {
+            $dependencyConfig = $this->getFormTypeConfig($this->foormModel . '.' . $dependencyFormType);
 
 
             $dependencyConfig = array_replace_recursive($defaultConfig, $dependencyConfig);
-            $dependencyConfig = array_merge($dependencyConfig,$this->getRealFoormClass($formConfig, $relativeModelName, $dependencyFormType));
+            $dependencyConfig = array_merge($dependencyConfig, $this->getRealFoormClass($formConfig, $relativeModelName, $dependencyFormType));
 
             $dependencyConfig['model'] = $snakeModelName;
             $dependencyConfig['relative_model_name'] = $relativeModelName;
@@ -189,7 +188,8 @@ class FoormManager
     }
 
 
-    protected function getFormTypeConfig($formName) {
+    protected function getFormTypeConfig($formName)
+    {
         $formConfig = config('foorms.' . $formName, false);
 
         if (!is_array($formConfig)) {
@@ -236,8 +236,8 @@ class FoormManager
     {
 
 
-        $relativeFormName = Arr::get($this->config,'relative_form_name');
-        $relativeModelName = Arr::get($this->config,'relative_model_name');
+        $relativeFormName = Arr::get($this->config, 'relative_form_name');
+        $relativeModelName = Arr::get($this->config, 'relative_model_name');
         $fullFormActionName = $this->baseConfig['foorms_namespace'] . $relativeModelName
             . "\\Actions\\Foorm" . $relativeFormName . Str::studly($action);
 
@@ -290,7 +290,7 @@ class FoormManager
         $this->model = $model;
     }
 
-    protected function setForm()
+    protected function setFoorm()
     {
 
 
@@ -299,17 +299,18 @@ class FoormManager
         $fullFormName = Arr::get($this->config, 'full_form_name');
 
 
-
-        $this->foorm = new $fullFormName($this->config, $this->model, $input, $this->params);
+        $foorm = new $fullFormName($this->config, $this->model, $input, $this->params);
+        return $foorm;
 
         $dependentForms = [];
 
-        foreach (Arr::get($this->config,'dependencies',[]) as $dependencyKey => $dependencyConfig) {
-            $dependentFormName =  Arr::get($dependencyConfig, 'full_form_name');
+        foreach (Arr::get($this->config, 'dependencies', []) as $dependencyKey => $dependencyConfig) {
+            $dependentFormName = Arr::get($dependencyConfig, 'full_form_name');
             $dependentForms[$dependencyKey] = new $dependentFormName($dependencyConfig, $this->model, $input, $this->params);
         }
 
-        $this->foorm->setDependentForms($dependentForms);
+        $foorm->setDependentForms($dependentForms);
+        return $foorm;
 
     }
 
@@ -330,33 +331,33 @@ class FoormManager
         }
 
 
+        return $input;
     }
 
 
-    protected function setFormAction($action) {
+    protected function setFoormAction($action,$foorm)
+    {
 
         $this->checkActionAllowed($action);
 
         $this->setActionConfig($action);
 
 
-
         $fullFormActionName = Arr::get($this->actionConfig, 'full_form_action_name');
 
 
-
-
-        $this->foormAction = new $fullFormActionName($this->actionConfig, $this->foorm, $this->model,
+        return new $fullFormActionName($this->actionConfig, $foorm, $this->model,
             $this->request->input(), $this->params);
 
         //CHECK ACTION
         //BUILD FORM ACTION
     }
 
-    protected function checkActionAllowed($action) {
+    protected function checkActionAllowed($action)
+    {
 
-        if (!Arr::get(Arr::get($this->config,'allowed_actions',[]),$action)) {
-            throw new \Exception("Action " . $action . " not allowed in form ". $this->foormName);
+        if (!Arr::get(Arr::get($this->config, 'allowed_actions', []), $action)) {
+            throw new \Exception("Action " . $action . " not allowed in form " . $this->foormName);
         }
 
     }
@@ -365,9 +366,9 @@ class FoormManager
     public function setActionConfig($action)
     {
 
-        $actionConfig = Arr::get(Arr::get($this->config,'actions',[]),$action,[]);
+        $actionConfig = Arr::get(Arr::get($this->config, 'actions', []), $action, []);
 
-        $this->actionConfig = array_merge($actionConfig,$this->getRealFoormActionClass($action));
+        $this->actionConfig = array_merge($actionConfig, $this->getRealFoormActionClass($action));
 
         return $this->actionConfig;
 
@@ -391,16 +392,13 @@ class FoormManager
     }
 
 
-
     /**
      * @return mixed
      */
-    public function getFormAction($action)
+    public function getFoormAction($action, $formName, Request $request, $params = [])
     {
-        if (!$this->foormAction) {
-            $this->setFormAction($action);
-        }
-        return $this->foormAction;
+        $foorm = $this->getFoorm($formName, $request, $params);
+        return $this->setFoormAction($action,$foorm);
     }
 
 
