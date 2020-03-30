@@ -4,7 +4,7 @@ namespace Gecche\Foorm;
 
 use Gecche\DBHelper\Facades\DBHelper;
 use Gecche\Foorm\Contracts\ListBuilder;
-use Gecche\Breeze\Breeze;
+use Gecche\Foorm\Breeze\Breeze;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
