@@ -239,7 +239,7 @@ class FoormManager
         $relativeFormName = Arr::get($this->config, 'relative_form_name');
         $relativeModelName = Arr::get($this->config, 'relative_model_name');
         $fullFormActionName = $this->baseConfig['foorms_namespace'] . $relativeModelName
-            . "\\Actions\\Foorm" . $relativeFormName . Str::studly($action);
+            . "\\Actions\\" . Str::studly($action);
 
 
         if (!class_exists($fullFormActionName)) {//Example: exists App\Foorm\User\List class?

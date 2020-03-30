@@ -26,6 +26,9 @@ class Delete extends FoormAction
 
     public function validateAction() {
 
+        if (!$this->model->getKey()) {
+            throw new \Exception("The delete action needs a saved model");
+        }
         return true;
 
     }
