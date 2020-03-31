@@ -22,8 +22,11 @@
     "extra": {
         "laravel": {
             "providers": [
-
-            ]
+                "Gecche\\Foorm\\FoormServiceProvider"
+            ],
+            "aliases": {
+                "Foorm": "Gecche\\Foorm\\Facades\\Foorm"
+            }
         }
     }
 }

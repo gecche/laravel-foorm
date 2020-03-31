@@ -4,7 +4,7 @@ namespace Gecche\Foorm;
 
 use Gecche\DBHelper\Facades\DBHelper;
 use Gecche\Foorm\Contracts\ListBuilder;
-use Gecche\Breeze\Breeze;
+use Gecche\Foorm\Breeze\Breeze;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
@@ -57,6 +57,7 @@ abstract class Foorm
     protected $hasManies;
     protected $belongsTos;
 
+    protected $flatFields;
 
     /**
      * @var mixed
@@ -96,12 +97,86 @@ abstract class Foorm
 
         $this->prepareRelationsData();
 
+        $this->prepareFoormInternalData();
+
         $this->init();
 
     }
 
     protected function init() {
         return;
+    }
+
+
+    protected function prepareFoormInternalData() {
+
+        $this->buildFlatFields();
+
+    }
+
+    protected function buildFlatFields() {
+        $config = $this->getConfig();
+        $this->flatFields = array_fill_keys(array_keys(Arr::get($config,'fields',[])),'field');
+        $relations = array_fill_keys(array_keys(Arr::get($config,'relations',[])),'relation');
+        $this->flatFields = array_merge($this->flatFields,$relations);
+
+
+        foreach (array_keys($relations) as $relation) {
+
+
+
+            $relationFields = array_key_append(Arr::get($config['relations'][$relation],'fields',[]),$relation.'|',false);
+            $this->flatFields = array_merge(
+                array_fill_keys(array_keys($relationFields),'relationfield'), $this->flatFields
+            );
+        }
+
+
+
+
+
+    }
+
+
+    public function getFlatFields($what = 'full',$onlyKeys = true) {
+
+        $flatFields = $this->flatFields;
+        switch ($what) {
+            case 'fields':
+            case 'relations':
+                $flatFields = array_filter($flatFields,function ($value,$key) use ($what) {
+                    return $value == $what;
+                },ARRAY_FILTER_USE_BOTH);
+                break;
+            default:
+                if (Str::startsWith($what,'fields:')) {
+                    $relation = substr($what,7);
+                    $flatFields = array_filter($flatFields,function ($key) use ($relation) {
+                        return Str::startsWith($key,$relation);
+                    },ARRAY_FILTER_USE_KEY);
+                }
+                break;
+        }
+
+        if ($onlyKeys) {
+            return array_keys($flatFields);
+        }
+        return $flatFields;
+
+    }
+
+    public function hasFlatField($field,$type = null) {
+
+        if (!array_key_exists($field,$this->flatFields)) {
+            return false;
+        }
+
+        if (!$type || $this->flatFields[$field] == $type) {
+            return true;
+        }
+
+        return false;
+
     }
 
     /**
@@ -235,6 +310,22 @@ abstract class Foorm
         return $relations;
     }
 
+
+
+
+    public function getRelationFieldsFromConfig($relation)
+    {
+        return $this->getRelationConfig($relation,'fields', []);
+    }
+
+    public function getRelationConfig($relation,$key = null, $defaultValue = null)
+    {
+        $relationConfig = Arr::get($this->getRelations(), $relation, []);
+        if (is_null($key)) {
+            return $relationConfig;
+        }
+        return Arr::get($relationConfig, $key, $defaultValue);
+    }
 
     /**
      * Costruisce l'array interno degli has many
