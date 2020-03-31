@@ -222,21 +222,4 @@ trait FoormSingleTrait
 
     }
 
-
-    protected function getRelationFieldsFromConfig($relation)
-    {
-        return $this->getRelationConfig($relation,'fields', []);
-    }
-
-    protected function getRelationConfig($relation,$key = null, $defaultValue = null)
-    {
-        $relationsConfig = Arr::get($this->config, 'relations', []);
-        $relationConfig = Arr::get($relationsConfig, $relation, []);
-        if (is_null($key)) {
-            return $relationConfig;
-        }
-        return Arr::get($relationConfig, $key, $defaultValue);
-    }
-
-
 }

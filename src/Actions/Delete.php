@@ -8,6 +8,20 @@ use Gecche\Foorm\FoormAction;
 class Delete extends FoormAction
 {
 
+    protected $modelToDelete;
+
+    protected function init() {
+
+
+        if ($this->model->getKey()) {
+            $this->modelToDelete = $this->model;
+        } else {
+            $this->modelToDelete = $this->model->find(Arr::get($this->input,'id'));
+        }
+    }
+
+
+
     public function performAction()
     {
 
@@ -16,7 +30,7 @@ class Delete extends FoormAction
 
         $this->actionResult = [
             'delete' => "ok",
-            'ids' => [$this->model->getKey()],
+            'ids' => [$this->modelToDelete->getKey()],
         ];
 
         return $this->actionResult;
@@ -26,7 +40,7 @@ class Delete extends FoormAction
 
     public function validateAction() {
 
-        if (!$this->model->getKey()) {
+        if (!$this->modelToDelete->getKey()) {
             throw new \Exception("The delete action needs a saved model");
         }
         return true;
@@ -37,14 +51,14 @@ class Delete extends FoormAction
     protected function deleteRelations() {
 
         foreach ($this->foorm->getRelations() as $relationName => $relationConfig) {
-            $this->model->$relationName()->delete();
+            $this->modelToDelete->$relationName()->delete();
         }
 
     }
 
     protected function deleteModel() {
 
-        $this->model->destroy($this->model->getKey());
+        $this->modelToDelete->destroy($this->modelToDelete->getKey());
 
     }
 

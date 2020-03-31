@@ -169,4 +169,11 @@ abstract class FoormAction
 
 
     abstract public function validateAction();
+
+    public function getModelsNamespace()
+    {
+        return Arr::get($this->config,'models_namespace');
+    }
+
+
 }

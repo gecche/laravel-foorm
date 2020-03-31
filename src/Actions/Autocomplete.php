@@ -13,32 +13,53 @@ class Autocomplete extends FoormAction
 
     protected $fieldToAutocomplete;
 
+    protected $modelToAutocomplete;
+
+    protected $value;
+
 
     protected function init()
     {
         parent::init();
 
         $this->fieldToAutocomplete = Arr::get($this->input, 'field');
-        $this->valueToSet = Arr::get($this->input, 'value');
+        $this->value = Arr::get($this->input, 'value');
     }
 
     public function performAction()
     {
 
-        $methodName = 'setValue' . Str::studly($this->fieldToAutocomplete);
+        $methodName = 'autocomplete' . Str::studly($this->fieldToAutocomplete);
         if (method_exists($this,$methodName)) {
-            $setResult = $this->$methodName();
+            $autocompleteResult = $this->$methodName();
         } else {
-            $setResult = $this->setValue();
+            $autocompleteResult = $this->autocomplete();
         }
 
         $this->actionResult = [
-            'set' => $setResult,
+            'autocomplete' => $autocompleteResult,
             'field' => $this->fieldToAutocomplete,
-            'value' => $this->valueToSet,
+            'value' => $this->value,
         ];
 
         return $this->actionResult;
+
+    }
+
+    protected function autocomplete() {
+        $nItems = Arr::get($this->input,'n_items');
+        if (!$nItems) {
+            $nItems = Arr::get($this->config,'n_items');
+        }
+
+        $searchFields = Arr::get($this->config,'search_fields');
+        $resultFields = Arr::get($this->config,'result_fields');
+
+
+
+        $modelMethodName = 'autocomplete' . Arr::get($this->config,'autocomplete_type');
+
+        return ($this->modelToAutocomplete)::$modelMethodName($this->value,$searchFields,$resultFields,$nItems,null);
 
     }
 
@@ -46,85 +67,65 @@ class Autocomplete extends FoormAction
     public function validateAction()
     {
 
-        if (!$this->model->getKey()) {
-            throw new \Exception("The set action needs a saved model");
-        }
-
         $this->validateField();
-        $this->validateValue();
 
     }
 
-
-    protected function setValue() {
-
-        $this->model->{$this->fieldToAutocomplete} = $this->valueToSet;
-        return $this->model->save();
-
-    }
 
     protected function validateField()
     {
 
         $field = $this->fieldToAutocomplete;
         if (!$field) {
-            throw new \Exception("The set action needs a field to be autocompleted");
+            throw new \Exception("The autocomplete action needs a field to be autocompleted");
         }
 
-        $allowedFields = Arr::get($this->config, 'allowed_fields', []);
-        if (!in_array($field, $allowedFields)) {
-            throw new \Exception("The set action does not allow the field " . $field . " for this foorm");
+        $notAllowedFields = Arr::get($this->config, 'banned_fields', []);
+        if (in_array($field, $notAllowedFields)) {
+            throw new \Exception("The autocomplete action does not allow the field " . $field . " for this foorm");
         }
 
-        $foormFields = Arr::get($this->foorm->getConfig(), 'fields', []);
-        if (!array_key_exists($field,$foormFields)) {
-            throw new \Exception("The field " . $field . " to be set is not configured in this foorm");
+        if (!$this->foorm->hasFlatField($field)) {
+            throw new \Exception("The field " . $field . " to be autocompleted is not configured in this foorm");
         }
+
+        $fieldConfig = Arr::get(Arr::get($this->config, 'fields', []), $field, []);
+
+        $this->modelToAutocomplete = Arr::get($fieldConfig, 'model', $this->guessModelToAutocomplete($field));
+
+        if (!Str::startsWith($this->modelToAutocomplete,$this->getModelsNamespace())) {
+            $this->modelToAutocomplete =
+                $this->getModelsNamespace() . $this->modelToAutocomplete;
+        }
+
+
+        if (!$this->modelToAutocomplete || !class_exists($this->modelToAutocomplete)) {
+            throw new \Exception("No model has been provided for the field " . $field . " to be autocompleted");
+        }
+
 
     }
 
-    protected function validateValue()
-    {
 
-        $settings = $this->getValidationSettings();
+    protected function guessModelToAutocomplete($field) {
 
-        $validator = Validator::make([$this->fieldToAutocomplete => $this->valueToSet], $settings['rules'], $settings['customMessages'], $settings['customAttributes']);
-
-        if (!$validator->passes()) {
-            $errors = Arr::flatten($validator->errors()->getMessages());
-            throw new \Exception(json_encode($errors));
-        }
-    }
-
-    protected function getValidationSettings()
-    {
-
-        $field = $this->fieldToAutocomplete;
-
-        $settings = is_array($this->validationSettings) ? $this->validationSettings
-            : $this->model->getModelValidationSettings();
-
-        $rules = Arr::get($settings, 'rules', []);
-        $customMessages = Arr::get($settings, 'customMessages', []);
-        $customAttributes = Arr::get($settings, 'customAttributes', []);
-        if (array_key_exists($field, $rules)) {
-            return [
-                'rules' => [$field => $rules[$field]],
-                'customMessages' => array_key_exists($field, $customMessages)
-                    ? [$field => Arr::get($customMessages, $field)]
-                    : [],
-                'customAttributes' => array_key_exists($field, $customAttributes)
-                    ? [$field => Arr::get($customAttributes, $field)]
-                    : [],
-            ];
+        $chunks = explode('|', $field);
+        if ($chunks == 1) {
+            if (Str::endsWith($field,'_id')) {
+                return Str::studly(substr($field,0,-3));
+            }
         }
 
-        return [
-            'rules' => [],
-            'customMessages' => [],
-            'customAttributes' => [],
-        ];
+        if (Str::endsWith($field,'_id')) {
+            return Str::studly(substr($field,0,-3));
+        }
+
+        $relation = $chunks[0];
+        $relationModel = $this->foorm->getRelationConfig($relation,'related');
+
+        return $relationModel ? $relationModel : false;
 
     }
+
 
 }
