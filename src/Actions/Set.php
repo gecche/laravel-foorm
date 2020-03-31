@@ -48,10 +48,6 @@ class Set extends FoormAction
     public function validateAction()
     {
 
-        if (!$this->model->getKey()) {
-            throw new \Exception("The set action needs a saved model");
-        }
-
         $this->validateField();
         $this->validateValue();
 

@@ -36,11 +36,13 @@ class Autocomplete extends FoormAction
             $autocompleteResult = $this->autocomplete();
         }
 
-        $this->actionResult = [
-            'autocomplete' => $autocompleteResult,
-            'field' => $this->fieldToAutocomplete,
-            'value' => $this->value,
-        ];
+//        $this->actionResult = [
+//            'autocomplete' => $autocompleteResult,
+//            'field' => $this->fieldToAutocomplete,
+//            'value' => $this->value,
+//        ];
+
+        $this->actionResult = $autocompleteResult;
 
         return $this->actionResult;
 
@@ -57,7 +59,7 @@ class Autocomplete extends FoormAction
 
 
 
-        $modelMethodName = 'autocomplete' . Arr::get($this->config,'autocomplete_type');
+        $modelMethodName = 'autocomplete' . Str::studly(Arr::get($this->config,'autocomplete_type'));
 
         return ($this->modelToAutocomplete)::$modelMethodName($this->value,$searchFields,$resultFields,$nItems,null);
 
