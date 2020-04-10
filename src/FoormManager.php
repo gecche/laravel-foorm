@@ -293,14 +293,14 @@ class FoormManager
     protected function setFoorm()
     {
 
+        $totalRequestInput = $this->request->input() + $this->request->allFiles();
 
-        $input = $this->setInputForForm($this->request->input());
+        $input = $this->setInputForForm($totalRequestInput);
 
         $fullFormName = Arr::get($this->config, 'full_form_name');
 
 
         $foorm = new $fullFormName($this->config, $this->model, $input, $this->params);
-        return $foorm;
 
         $dependentForms = [];
 
@@ -345,9 +345,12 @@ class FoormManager
 
         $fullFormActionName = Arr::get($this->actionConfig, 'full_form_action_name');
 
+        $totalRequestInput = $this->request->input() + $this->request->allFiles();
 
+
+        \Log::info(print_r($totalRequestInput,true));
         return new $fullFormActionName($this->actionConfig, $foorm, $this->model,
-            $this->request->input(), $this->params);
+            $totalRequestInput, $this->params);
 
         //CHECK ACTION
         //BUILD FORM ACTION
