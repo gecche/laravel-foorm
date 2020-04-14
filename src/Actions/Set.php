@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
 class Set extends FoormAction
 {
 
+    protected $modelToSet;
+
     protected $fieldToSet;
     protected $valueToSet;
 
@@ -18,6 +20,12 @@ class Set extends FoormAction
 
     protected function init()
     {
+        if ($this->model->getKey()) {
+            $this->modelToSet = $this->model;
+        } else {
+            $this->modelToSet = $this->model->find(Arr::get($this->input,'id'));
+        }
+
         parent::init();
 
         $this->fieldToSet = Arr::get($this->input, 'field');
@@ -56,8 +64,8 @@ class Set extends FoormAction
 
     protected function setValue() {
 
-        $this->model->{$this->fieldToSet} = $this->valueToSet;
-        return $this->model->save();
+        $this->modelToSet->{$this->fieldToSet} = $this->valueToSet;
+        return $this->modelToSet->save();
 
     }
 
@@ -100,7 +108,7 @@ class Set extends FoormAction
         $field = $this->fieldToSet;
 
         $settings = is_array($this->validationSettings) ? $this->validationSettings
-            : $this->model->getModelValidationSettings();
+            : $this->modelToSet->getModelValidationSettings();
 
         $rules = Arr::get($settings, 'rules', []);
         $customMessages = Arr::get($settings, 'customMessages', []);

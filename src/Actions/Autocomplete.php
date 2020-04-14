@@ -123,7 +123,7 @@ class Autocomplete extends FoormAction
         }
 
         $relation = $chunks[0];
-        $relationModel = $this->foorm->getRelationConfig($relation,'related');
+        $relationModel = $this->foorm->getRelationConfig($relation,'modelName');
 
         return $relationModel ? $relationModel : false;
 

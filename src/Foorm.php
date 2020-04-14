@@ -320,7 +320,15 @@ abstract class Foorm
 
     public function getRelationConfig($relation,$key = null, $defaultValue = null)
     {
-        $relationConfig = Arr::get($this->getRelations(), $relation, []);
+        $macroType = Arr::get(Arr::get($this->getRelations(), $relation, []),'macroType');
+        if ($macroType == 'hasMany') {
+            $relationConfig = Arr::get($this->hasManies,$relation,[]);
+        } elseif ($macroType == 'belongsTo') {
+            $relationConfig = Arr::get($this->belongsTos,$relation,[]);
+        } else {
+            $relationConfig = [];
+        }
+
         if (is_null($key)) {
             return $relationConfig;
         }
@@ -383,6 +391,7 @@ abstract class Foorm
             $relationConfig = array_merge($relationConfig,$configRelationMetadata);
 
             $this->hasManies[$relationName] = $relationConfig;
+            $this->relations[$relationName]['macroType'] = 'hasMany';
 
         }
 
@@ -437,6 +446,7 @@ abstract class Foorm
             $relationConfig = array_merge($relationConfig,$configRelationMetadata);
 
             $this->belongsTos[$relationName] = $relationConfig;
+            $this->relations[$relationName]['macroType'] = 'belongsTo';
 
         }
 
