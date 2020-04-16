@@ -532,50 +532,54 @@ abstract class Foorm
     {
 
         $options = $fieldValue['options'];
-
         //SE E' un array metto le options così come sono;
         if (is_array($options)) {
             return $options;
         }
 
-        if ($options == 'boolean') {
+        $optionType = current(explode(':',$options));
 
-            return [
-                Arr::get($fieldValue, 'bool-false-value', $defaultOptionsValues['bool-false-value'])
-                => Arr::get($fieldValue, 'bool-false-label', $defaultOptionsValues['bool-false-label']),
-                Arr::get($fieldValue, 'bool-true-value', $defaultOptionsValues['bool-true-value'])
-                => Arr::get($fieldValue, 'bool-true-label', $defaultOptionsValues['bool-true-label']),
-            ];
+
+        switch ($optionType) {
+            case 'boolean':
+                return [
+                    Arr::get($fieldValue, 'bool-false-value', $defaultOptionsValues['bool-false-value'])
+                    => Arr::get($fieldValue, 'bool-false-label', $defaultOptionsValues['bool-false-label']),
+                    Arr::get($fieldValue, 'bool-true-value', $defaultOptionsValues['bool-true-value'])
+                    => Arr::get($fieldValue, 'bool-true-label', $defaultOptionsValues['bool-true-label']),
+                ];
+            case 'dboptions':
+                return $this->dbHelper->listEnumValues($fieldKey,$this->getModel()->getTable());
+
+            case 'method':
+                $methodName = 'createOptions'.Str::studly($fieldKey);
+                return $this->$methodName($fieldValue,$defaultOptionsValues);
+            case 'relation':
+
+                    Log::info(print_r($this->getModelName(),true));
+
+                    /*
+                     * Prendo tutte le relazioni del modello anche quelle non in configurazione
+                     */
+                    $relations = ($this->getModelName())::getRelationsData();
+                    $relationValue = explode(':',$options);
+                    $relationName = $relationValue[1];
+
+                    $relationModelName = Arr::get(Arr::get($relations,$relationName,[]),'related');
+
+                    if (!$relationModelName) {
+                        throw new \Exception("Relation " . $relationName . " not found in compiling options.");
+                    }
+
+                    $relationModel = new $relationModelName;
+                    $options = $this->getForSelectList($relationName,$relationModel);
+
+                    return $options;
+
+            default:
+                return [];
+
         }
-
-        if ($options == 'dboptions') {
-            return $this->dbHelper->listEnumValues($fieldKey,$this->getModel()->getTable());
-        }
-
-        if (Str::startsWith($options, 'relation:')) {
-
-            Log::info(print_r($this->getModelName(),true));
-
-            /*
-             * Prendo tutte le relazioni del modello anche quelle non in configurazione
-             */
-            $relations = ($this->getModelName())::getRelationsData();
-            $relationValue = explode(':',$options);
-            $relationName = $relationValue[1];
-
-            $relationModelName = Arr::get(Arr::get($relations,$relationName,[]),'related');
-
-            if (!$relationModelName) {
-                throw new \Exception("Relation " . $relationName . " not found in compiling options.");
-            }
-
-            $relationModel = new $relationModelName;
-            $options = $this->getForSelectList($relationName,$relationModel);
-
-            return $options;
-        }
-
-        return [];
 
     }
 
@@ -669,14 +673,19 @@ abstract class Foorm
 
     protected function setFormMetadataFields() {
         $fields = Arr::get($this->config, 'fields', []);
-        $this->formMetadata['fields'] = $this->_setFormMetadataFields($fields);
+        $this->formMetadata['fields'] = $this->fillFormMetadataFields($fields);
 
         return $fields;
     }
 
-    protected function _setFormMetadataFields($fields = []) {
+    protected function fillFormMetadataFields($fields = []) {
 
+        $fields = $this->manageMetadataFieldOptions($fields);
 
+        return $fields;
+    }
+
+    protected function manageMetadataFieldOptions($fields = []) {
         /*
          * AnyValue e NullValue convergono su NullValue
          */
@@ -723,6 +732,7 @@ abstract class Foorm
         }
 
         return $fields;
+
     }
 
     protected function setFormMetadataRelations() {
@@ -731,7 +741,7 @@ abstract class Foorm
 
 
         foreach ($this->hasManies as $key => $relationMetadata) {
-            $relationMetadata['fields'] = $this->_setFormMetadataFields(Arr::get($relationMetadata,'fields',[]));
+            $relationMetadata['fields'] = $this->fillFormMetadataFields(Arr::get($relationMetadata,'fields',[]));
             $relations[$key] = $relationMetadata;
         }
 
