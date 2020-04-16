@@ -93,13 +93,15 @@ class Autocomplete extends FoormAction
 
         $fieldConfig = Arr::get(Arr::get($this->config, 'fields', []), $field, []);
 
+
         $this->modelToAutocomplete = Arr::get($fieldConfig, 'model', $this->guessModelToAutocomplete($field));
 
-        if (!Str::startsWith($this->modelToAutocomplete,$this->getModelsNamespace())) {
+        if (!Str::startsWith($this->modelToAutocomplete,$this->foorm->getModelsNamespace())) {
             $this->modelToAutocomplete =
-                $this->getModelsNamespace() . $this->modelToAutocomplete;
+                $this->foorm->getModelsNamespace() . $this->modelToAutocomplete;
         }
 
+        \Log::info($this->modelToAutocomplete);
 
         if (!$this->modelToAutocomplete || !class_exists($this->modelToAutocomplete)) {
             throw new \Exception("No model has been provided for the field " . $field . " to be autocompleted");
