@@ -86,13 +86,17 @@ class FoormDetail extends Foorm
                 if (is_null($relationResult)) {
                     return [];
                 }
-
-                $relationResult = $relationResult->toArray();
-                if (!array_key_exists(2,$referredDataArray)) {
-                    return $relationResult;
+                if (is_array($relationResult)) {
+                    throw new \Exception("Referred data only for belongsto macrotypes");
                 }
 
-                $fieldsToFilter = explode('|', Arr::get($referredDataArray, 2));
+                if (!array_key_exists(2,$referredDataArray)) {
+                    $fieldsToFilter = $relationResult->getColumnsForSelectList();
+                } else {
+                    $fieldsToFilter = explode('|', Arr::get($referredDataArray, 2));
+                }
+
+                $relationResult = $relationResult->toArray();
                 $fieldsToFilter = array_combine($fieldsToFilter,$fieldsToFilter);
                 return array_intersect_key($relationResult, $fieldsToFilter);
 
