@@ -95,7 +95,7 @@ class FoormDetail extends Foorm
                 $fieldsToFilter = explode('|', Arr::get($referredDataArray, 2));
                 $fieldsToFilter = array_combine($fieldsToFilter,$fieldsToFilter);
                 return array_intersect_key($relationResult, $fieldsToFilter);
-                
+
             default:
                 return [];
         }

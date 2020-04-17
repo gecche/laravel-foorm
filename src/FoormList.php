@@ -330,7 +330,7 @@ class FoormList extends Foorm
             $arrayFiltered = array_intersect_key($model->toArray(),array_flip($configFields));
 
             foreach ($belongsTos as $relation) {
-                $relationArray = array_intersect_key($arrayFiltered[$relation],$relationsConfigFields[$relation]);
+                $relationArray = is_array($arrayFiltered[$relation]) ? array_intersect_key($arrayFiltered[$relation],$relationsConfigFields[$relation]) : [];
                 $arrayFiltered[$relation] = $relationArray;
             }
 
