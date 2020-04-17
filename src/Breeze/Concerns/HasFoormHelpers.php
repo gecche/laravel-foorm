@@ -164,6 +164,7 @@ trait HasFoormHelpers
             $labelColumns = $model->getColumnsForSelectList();
         }
         $labelColumns = Arr::wrap($labelColumns);
+        $labelColumns[] = $model->getKeyName();
 
 //        if ($separator === null) {
 //            $separator = $model->getFieldsSeparator();
