@@ -1,15 +1,4 @@
-<?php namespace Gecche\Breeze\Contracts;
-
-use Gecche\Breeze\Concerns\HasValidation;
-use Gecche\Breeze\Concerns\HasFormHelpers;
-use Gecche\Breeze\Concerns\HasOwnerships;
-use Gecche\Breeze\Concerns\HasRelationships as BreezeHasRelationships;
-
-use Illuminate\Database\Eloquent\Concerns\HasTimestamps;
-use Illuminate\Database\Eloquent\Model;
-
-use Illuminate\Database\Eloquent\Concerns\HasRelationships;
-
+<?php namespace Gecche\Foorm\Breeze\Contracts;
 
 /**
  * Breeze - Eloquent model base class with some pluses!

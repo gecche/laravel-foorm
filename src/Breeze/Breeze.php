@@ -1,7 +1,6 @@
 <?php namespace Gecche\Foorm\Breeze;
 
 use Gecche\Breeze\Breeze as GeccheBreeze;
-use Gecche\Breeze\Contracts\HasFoormInterface;
 use Gecche\Foorm\Breeze\Contracts\FoormBreezeInterface;
 
 /**
