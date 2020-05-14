@@ -3,6 +3,7 @@
 namespace Gecche\Foorm;
 
 use Gecche\DBHelper\Facades\DBHelper;
+use Gecche\Foorm\Breeze\Contracts\FoormBreezeInterface;
 use Gecche\Foorm\Contracts\ListBuilder;
 use Gecche\Foorm\Breeze\Breeze;
 use Illuminate\Database\Eloquent\Builder;
@@ -82,7 +83,7 @@ abstract class Foorm
      * @param Breeze $model
      * @param array $params
      */
-    public function __construct(array $config, Breeze $model, array $input, $params = [])
+    public function __construct(array $config, FoormBreezeInterface $model, array $input, $params = [])
     {
 
         $this->input = $input;
