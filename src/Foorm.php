@@ -601,7 +601,7 @@ abstract class Foorm
             throw new \InvalidArgumentException("Predefined option not allowed");
         }
 
-        if ($hasPredefinedOption == 'onchoice' && count($options) <= 1) {
+        if ($hasPredefinedOption === 'onchoice' && count($options) <= 1) {
             return $options;
         }
 
@@ -714,11 +714,11 @@ abstract class Foorm
 
                 $hasAnyOption = Arr::get($fieldValue, 'anyoption', false);
                 if ($hasAnyOption) {
-                    $options = $this->setPredefinedOption('any', $fieldValue, $options, $hasNullOption, $defaultOptionsValues);
+                    $options = $this->setPredefinedOption('any', $fieldValue, $options, $hasAnyOption, $defaultOptionsValues);
                 }
                 $hasNoOption = Arr::get($fieldValue, 'nooption', false);
                 if ($hasNoOption) {
-                    $options = $this->setPredefinedOption('no', $fieldValue, $options, $hasNullOption, $defaultOptionsValues);
+                    $options = $this->setPredefinedOption('no', $fieldValue, $options, $hasNoOption, $defaultOptionsValues);
                 }
 
                 $fieldValue['options'] = $options;
