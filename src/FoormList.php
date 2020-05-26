@@ -251,10 +251,7 @@ class FoormList extends Foorm
 
         $paginationInput = Arr::get($this->input, 'pagination', []);
 
-        $perPage =
-            Arr::get($paginationInput, 'per_page',
-                Arr::get($this->config, 'per_page', 10)
-            );
+        $perPage = Arr::get($paginationInput, 'per_page') ?: Arr::get($this->config, 'per_page', 10);
 
         $page = Arr::get($paginationInput, 'page', 1);
 
