@@ -5,6 +5,7 @@ namespace Gecche\Foorm;
 use Gecche\Breeze\Breeze;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class FoormManager
@@ -31,6 +32,9 @@ class FoormManager
      * @var string
      */
     protected $foormType;
+
+    protected $normalizedFoormType;
+
     /**
      * @var array
      */
@@ -102,6 +106,14 @@ class FoormManager
         return $this->foormName;
     }
 
+    public function getNormalizedFoormType() {
+        return $this->normalizedFoormType;
+    }
+
+    public function getFoormType() {
+        return $this->foormType;
+    }
+
 
     public function buildParams($params)
     {
@@ -161,6 +173,7 @@ class FoormManager
             throw new \InvalidArgumentException("Model class $fullModelName does not exists");
 
         $finalConfig = array_merge($finalConfig, $this->getRealFoormClass($formConfig, $relativeModelName, $this->foormType));
+        $this->normalizedFoormType = Arr::get($finalConfig,'form_type',$this->foormType);
 
         $finalConfig['model'] = $snakeModelName;
         $finalConfig['relative_model_name'] = $relativeModelName;
@@ -187,6 +200,13 @@ class FoormManager
 
     }
 
+    public function getRelativeModelName() {
+        return Arr::get($this->config,'relative_model_name');
+    }
+
+    public function getFullModelName() {
+        return Arr::get($this->config,'full_model_name');
+    }
 
     protected function getFormTypeConfig($formName)
     {
@@ -348,7 +368,7 @@ class FoormManager
         $totalRequestInput = $this->request->input() + $this->request->allFiles();
 
 
-        \Log::info(print_r($totalRequestInput,true));
+        Log::info(print_r($totalRequestInput,true));
         return new $fullFormActionName($this->actionConfig, $foorm, $this->model,
             $totalRequestInput, $this->params);
 
