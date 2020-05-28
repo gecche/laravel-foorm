@@ -1,4 +1,4 @@
-<?php namespace Gecche\Foorm\Breeze\Contracts;
+<?php namespace Gecche\Foorm\Contracts;
 
 
 use Gecche\Breeze\Contracts\BreezeInterface;

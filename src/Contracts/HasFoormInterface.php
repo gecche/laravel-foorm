@@ -1,4 +1,4 @@
-<?php namespace Gecche\Foorm\Breeze\Contracts;
+<?php namespace Gecche\Foorm\Contracts;
 
 /**
  * Breeze - Eloquent model base class with some pluses!
