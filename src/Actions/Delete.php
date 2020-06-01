@@ -51,7 +51,7 @@ class Delete extends FoormAction
 
     protected function deleteRelations() {
 
-        foreach ($this->foorm->getRelations() as $relationName => $relationConfig) {
+        foreach (Arr::get($this->config,'relations',[]) as $relationName) {
             $this->modelToDelete->$relationName()->delete();
         }
 
