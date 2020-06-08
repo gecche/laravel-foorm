@@ -17,6 +17,7 @@ class Autocomplete extends FoormAction
 
     protected $value;
 
+    protected $fieldConfig;
 
     protected function init()
     {
@@ -51,17 +52,19 @@ class Autocomplete extends FoormAction
     protected function autocomplete() {
         $nItems = Arr::get($this->input,'n_items');
         if (!$nItems) {
-            $nItems = Arr::get($this->config,'n_items');
+            $nItems = Arr::get($this->fieldConfig,'n_items');
         }
 
-        $searchFields = Arr::get($this->config,'search_fields');
-        $resultFields = Arr::get($this->config,'result_fields');
+        $searchFields = Arr::get($this->fieldConfig,'search_fields');
+        $resultFields = Arr::get($this->fieldConfig,'result_fields');
 
 
 
-        $modelMethodName = 'autocomplete' . Str::studly(Arr::get($this->config,'autocomplete_type'));
+        $modelMethodName = 'autocomplete' . Str::studly(Arr::get($this->fieldConfig,'autocomplete_type'));
 
-        return ($this->modelToAutocomplete)::$modelMethodName($this->value,$searchFields,$resultFields,$nItems,null);
+        $autocompleteResult = ($this->modelToAutocomplete)::$modelMethodName($this->value,$searchFields,$resultFields,$nItems,null);
+
+        return $this->finalizeData($autocompleteResult);
 
     }
 
@@ -70,6 +73,12 @@ class Autocomplete extends FoormAction
     {
 
         $this->validateField();
+
+    }
+
+    protected function finalizeData($autocompleteResult) {
+
+        return $autocompleteResult;
 
     }
 
@@ -91,10 +100,10 @@ class Autocomplete extends FoormAction
             throw new \Exception("The field " . $field . " to be autocompleted is not configured in this foorm");
         }
 
-        $fieldConfig = Arr::get(Arr::get($this->config, 'fields', []), $field, []);
+        $this->fieldConfig = Arr::get(Arr::get($this->config, 'fields', []), $field, []);
 
 
-        $this->modelToAutocomplete = Arr::get($fieldConfig, 'model', $this->guessModelToAutocomplete($field));
+        $this->modelToAutocomplete = Arr::get($this->fieldConfig, 'model', $this->guessModelToAutocomplete($field));
 
         if (!Str::startsWith($this->modelToAutocomplete,$this->foorm->getModelsNamespace())) {
             $this->modelToAutocomplete =

@@ -166,11 +166,16 @@ trait HasFoormHelpers
         $labelColumns = Arr::wrap($labelColumns);
         $labelColumns[] = $model->getKeyName();
 
+        $relationsInvolved = static::getRelationsInvolved($labelColumns);
+
 //        if ($separator === null) {
 //            $separator = $model->getFieldsSeparator();
 //        }
 
         $startBuilder = $builder ? $builder : $model;
+        if (count($relationsInvolved) > 0) {
+            $startBuilder = $startBuilder->with($relationsInvolved);
+        }
         $modelBuilder = clone $startBuilder;
         $modelBuilder = $modelBuilder->where(function ($query) use ($fields, $value) {
             foreach ($fields as $field) {
@@ -289,6 +294,20 @@ trait HasFoormHelpers
         return [$items, $n_items, $ids];
     }
 
+    protected static function getRelationsInvolved($columns) {
+        $relations = [];
+
+        foreach ($columns as $column) {
+            $chunks = explode('|', $column);
+            if (count($chunks) <= 1) {
+                continue;
+            }
+            $relations[] = $chunks[0];
+        }
+
+        return $relations;
+    }
+
     public function setCompletionItem($result, $labelColumns)
     {
 
@@ -303,7 +322,9 @@ trait HasFoormHelpers
         $items = $result->map(function ($item) use ($labelColumns) {
             $filteredItem = [];
 
+            $item = $item->toArray();
             foreach ($labelColumns as $column) {
+
                 $chunks = explode('|', $column);
                 if (count($chunks) > 1) {
                     $relation = $chunks[0];
