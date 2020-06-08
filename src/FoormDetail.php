@@ -60,22 +60,32 @@ class FoormDetail extends Foorm
         }
 
         $referredDataArray = explode(':', $referredData);
-        $referredDataType = $referredDataArray[0];
+        $referredDataType = array_shift($referredDataArray);
+
+
+
 
 
         switch ($referredDataType) {
             case 'method':
-                $methodName = 'crateReferredData' . Str::studly($fieldKey);
-                return $this->$methodName($fieldValue);
+                $methodName = 'createReferredData' . Str::studly($fieldKey);
+                $methodClassType = Arr::get($referredDataArray, 0, 'foorm');
+                switch ($methodClassType) {
+                    case 'foorm' :
+                        return $this->$methodName($fieldValue);
+                    case 'model' :
+                        return $this->model->$methodName($fieldValue);
+                    default:
+                        $methodClassType::$methodName($fieldValue);
 
-
+                }
             case 'relation':
 
                 /*
                  * Prendo tutte le relazioni del modello anche quelle non in configurazione
                  */
                 $relations = ($this->getModelName())::getRelationsData();
-                $relationName = Arr::get($referredDataArray, 1);
+                $relationName = Arr::get($referredDataArray, 0);
 
                 if (!array_key_exists($relationName,$relations)) {
                     throw new \Exception("Relation " . $relationName . " not found.");
@@ -90,10 +100,10 @@ class FoormDetail extends Foorm
                     throw new \Exception("Referred data only for belongsto macrotypes");
                 }
 
-                if (!array_key_exists(2,$referredDataArray)) {
+                if (!array_key_exists(1,$referredDataArray)) {
                     $fieldsToFilter = $relationResult->getColumnsForSelectList();
                 } else {
-                    $fieldsToFilter = explode('|', Arr::get($referredDataArray, 2));
+                    $fieldsToFilter = explode('|', Arr::get($referredDataArray, 1));
                 }
 
                 $relationResult = $relationResult->toArray();

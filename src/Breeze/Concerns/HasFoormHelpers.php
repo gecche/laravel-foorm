@@ -297,14 +297,22 @@ trait HasFoormHelpers
     protected static function getRelationsInvolved($columns) {
         $relations = [];
 
+//        foreach ($columns as $column) {
+//            $chunks = explode('|', $column);
+//            if (count($chunks) > 1) {
+//                $relations[] = $chunks[0];
+//            }
+//        }
         foreach ($columns as $column) {
             $chunks = explode('|', $column);
-            if (count($chunks) <= 1) {
-                continue;
+            if (count($chunks) > 1) {
+                $relation = $chunks[0];
+                for ($i = 1;$i < count($chunks)-1;$i++) {
+                    $relation .= '.'.$chunks[$i];
+                }
+                $relations[] = $relation;
             }
-            $relations[] = $chunks[0];
         }
-
         return $relations;
     }
 
@@ -323,17 +331,13 @@ trait HasFoormHelpers
             $filteredItem = [];
 
             $item = $item->toArray();
+            $itemDotted = Arr::dot($item);
             foreach ($labelColumns as $column) {
 
                 $chunks = explode('|', $column);
                 if (count($chunks) > 1) {
-                    $relation = $chunks[0];
-                    $columnField = $chunks[1];
-                    if (!array_key_exists($relation,$item) ||
-                        !array_key_exists($columnField,$item[$relation])) {
-                        continue;
-                    }
-                    $columnValue = $item[$relation][$columnField];
+                    $relationField = implode('.',$chunks);
+                    $columnValue = Arr::get($itemDotted,$relationField);
                 } else {
                     $columnValue = Arr::get($item,$column);
                 }
