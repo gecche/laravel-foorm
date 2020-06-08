@@ -76,9 +76,10 @@ class FoormDetail extends Foorm
                     case 'model' :
                         return $this->model->$methodName($fieldValue);
                     default:
-                        $methodClassType::$methodName($fieldValue);
+                        return $methodClassType::$methodName($fieldValue);
 
                 }
+            break;
             case 'relation':
 
                 /*
