@@ -108,6 +108,10 @@ abstract class Foorm
         return;
     }
 
+    public function initFormData() {
+        $this->formData = null;
+    }
+
 
     protected function prepareFoormInternalData() {
 

@@ -29,11 +29,6 @@ class FoormList extends Foorm
     protected $formBuilder;
 
 
-    /**
-     * @var \Closure|null
-     */
-    protected $listBuilder;
-
     protected $listOrder;
 
     /**
@@ -42,17 +37,13 @@ class FoormList extends Foorm
     protected $formAggregatesBuilder;
 
 
+    protected $customFuncs = [];
 
 
 
-    /**
-     * @param \Closure|string $builder
-     */
-    public function setListBuilder($builder)
-    {
-        $this->listBuilder = $builder;
+    public function setCustomFunc($type, \Closure $func) {
+        $this->customFuncs[$type] = $func;
     }
-
 
     /**
      *
@@ -72,8 +63,10 @@ class FoormList extends Foorm
 
     protected function applyListBuilder()
     {
-        if ($this->listBuilder instanceof \Closure) {
-            $builder = $this->listBuilder;
+
+
+        if (Arr::get($this->customFuncs,'listBuilder') instanceof \Closure) {
+            $builder = $this->customFuncs['listBuilder'];
             $this->formBuilder = $builder($this->model);
             return;
         }
@@ -274,17 +267,33 @@ class FoormList extends Foorm
 
     }
 
+    public function getDataFromBuilder($params = []) {
 
-    public function finalizeData($finalizationFunc = null)
-    {
 
-        if ($finalizationFunc instanceof \Closure) {
-            $this->formData = $finalizationFunc($this->formBuilder);
-        } else {
-
-            $this->formData = $this->finalizeDataStandard();
+        if (Arr::get($this->customFuncs,'transformToData') instanceof \Closure) {
+            $transformationFunc = $this->customFuncs['transformToData'];
+            return call_user_func_array($transformationFunc,$params);
         }
 
+        $this->paginateList();
+        $this->finalizeData();
+    }
+
+    public function finalizeData()
+    {
+
+        if (Arr::get($this->customFuncs,'finalizeData') instanceof \Closure) {
+            $finalizationFunc = $this->customFuncs['finalizeData'];
+            $this->formData = $finalizationFunc($this->formBuilder);
+            return;
+        }
+
+        $this->formData = $this->finalizeDataStandard();
+
+    }
+
+    public function initFormBuilder() {
+        $this->formBuilder = null;
     }
 
     protected function finalizeDataStandard()
@@ -366,9 +375,13 @@ class FoormList extends Foorm
 
         $this->setAggregatesBuilder();
 
-        $this->paginateList();
+        $this->getDataFromBuilder();
 
-        $this->finalizeData();
+
+        /*
+         * REINIZIALIZZO IL FORM BUILDER
+         */
+        $this->initFormBuilder();
 
         return $this->formData;
 
