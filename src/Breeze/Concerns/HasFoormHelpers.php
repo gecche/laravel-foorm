@@ -32,9 +32,18 @@ trait HasFoormHelpers
         if (is_null($columns)) {
             $columns = $this->getColumnsForSelectList();
         }
-        $columns = Arr::wrap($columns);
 
-        $columns = [-1 => $key . ' as '.$this->keynameInList] + $columns;
+        $relationsInvolved = static::getRelationsInvolved($columns);
+
+        $columns = Arr::wrap($columns);
+        if (count($relationsInvolved) > 0) {
+            $selectColumns = ['*'];
+        } else {
+            $selectColumns = $columns;
+        }
+
+
+        $selectColumns = $selectColumns + [9999 => $key . ' as '.$this->keynameInList];
 
         $separator = Arr::get($params,'separator',$this->getSeparatorForSelectList());
         $maxItems = Arr::get($params,'max_items',$this->getMaxItemsForSelectList());
@@ -55,8 +64,12 @@ trait HasFoormHelpers
 //        Log::info($listBuilder->toSql());
 
 
+        if (count($relationsInvolved) > 0) {
+            $list = $builder->select($selectColumns)->with($relationsInvolved)->get();
+        } else {
+            $list = $builder->select($selectColumns)->get();
+        }
 
-        $list = $builder->select($columns)->get();
 
         $ids = $list->pluck($this->keynameInList)->all();
 
@@ -101,8 +114,19 @@ trait HasFoormHelpers
 
         $values = $list->map(function ($item) use ($columns, $separator) {
             $value = '';
+
+            $item = $item->toArray();
+            $itemDotted = Arr::dot($item);
+
             foreach ($columns as $column) {
-                $value .= $separator . $item->$column;
+                $chunks = explode('|', $column);
+                if (count($chunks) > 1) {
+                    $relationField = implode('.',$chunks);
+                    $columnValue = Arr::get($itemDotted,$relationField);
+                } else {
+                    $columnValue = Arr::get($item,$column);
+                }
+                $value .= $separator . $columnValue;
             }
             return trim($value, $separator);
         });
@@ -260,39 +284,6 @@ trait HasFoormHelpers
         return $completionItems;
     }
 
-    public function setCompletionItemOK($result, $labelColumns, $separator)
-    {
-        $n_items = $result->count();
-
-        $ids = $result->pluck($this->getKeyName())->all();
-
-        $items = $result->map(function ($item) use ($labelColumns, $separator) {
-            $labelValue = '';
-            foreach ($labelColumns as $column) {
-                $chunks = explode('.', $column);
-                if (count($chunks) > 1) {
-                    $relation = $chunks[0];
-                    $column = $chunks[1];
-                    $labelValue .= $separator . $item->$relation->$column;
-                } else {
-                    $labelValue .= $separator . $item->$column;
-                }
-            }
-            $labelValue = trim($labelValue, $separator);
-
-            $idValue = $item->getKey();
-            return $item->toArray();
-//            return [
-//                'id' => $idValue,
-//                'label' => $labelValue,
-//                'data' => $item->toArray(),
-//                'morph_id' => $idValue,
-//                'morph_type' => ltrim(get_class($item), "\\"),
-//            ];
-        });
-
-        return [$items, $n_items, $ids];
-    }
 
     protected static function getRelationsInvolved($columns) {
         $relations = [];
