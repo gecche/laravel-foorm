@@ -293,7 +293,12 @@ class FoormDetail extends Foorm
         if (!$saved) {
             throw new \Exception($this->model->errors());
         }
+
         $this->model = $this->model->fresh();
+        if (is_null($this->model)) {
+            $modelName = $this->getModelName();
+            $this->model = new $modelName;
+        }
     }
 
 
