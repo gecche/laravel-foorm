@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class FoormList extends Foorm
 {
@@ -97,23 +98,44 @@ class FoormList extends Foorm
 
 
         $field = Arr::get($constraintArray, 'field', null);
-
         if (!$field || !is_string($field) || !array_key_exists('value', $constraintArray)) {
             return $this->formBuilder;
         };
 
         $value = $constraintArray['value'];
+        $op = Arr::get($constraintArray, 'op', '=');
+        $params = Arr::get($constraintArray, 'params', []);
+
+        $studlyField = Str::studly($field);
+
+        $methodName = 'buildSearchFilterField' . $studlyField;
+
+        //Se esiste il metodo specifico SUL CAMPO lo chiamo
+        if (method_exists($this, $methodName)) {
+            return $this->$methodName($this->formBuilder, $op, $value, $params);
+        }
+
+
+        $modelRelations = $this->model->getRelationsData();
 
         $relation = null;
         $isRelation = false;
         $fieldExploded = explode('|', $field);
+        $db = null;
+        $table = null;
+
+
+        if (array_key_exists($field,$modelRelations)) {
+            return $this->formBuilder = $this->buildConstraint($this->formBuilder, $field, $value, $op, $params);
+        }
+
         if (count($fieldExploded) > 1) {
             $isRelation = true;
             $relation = $fieldExploded[0];
             unset($fieldExploded[0]);
             $field = implode('.', $fieldExploded);
 
-            $relationData = Arr::get($this->model->getRelationsData(), $relation, []);
+            $relationData = Arr::get($modelRelations, $relation, []);
             if (!array_key_exists('related', $relationData)) {
                 return $this->formBuilder;
             }
@@ -132,10 +154,6 @@ class FoormList extends Foorm
         $dbField = $db ? $db . '.' : '';
         $dbField .= $table ? $table . '.' : '';
         $dbField .= $field;
-
-        $op = Arr::get($constraintArray, 'op', '=');
-        $params = Arr::get($constraintArray, 'params', []);
-
 
         if ($isRelation) {
             return $this->formBuilder = $this->buildConstraintRelation($relation, $this->formBuilder, $dbField, $value, $op, $params);

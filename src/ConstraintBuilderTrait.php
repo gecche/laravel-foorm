@@ -54,6 +54,8 @@ trait ConstraintBuilderTrait
 
 
         switch ($studly_op) {
+            case 'Has':
+                return $builder->whereHas($field);
             case 'Like':
                 return $builder->where($field, 'LIKE', '%' . $value . '%');
             case 'Date':
