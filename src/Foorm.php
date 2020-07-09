@@ -571,21 +571,24 @@ abstract class Foorm
 
                     Log::info(print_r($this->getModelName(),true));
 
+                    $optionsRelationValue = explode(':',$options);
+                    $optionsRelationName = $optionsRelationValue[1];
                     /*
                      * Prendo tutte le relazioni del modello anche quelle non in configurazione
                      */
-                    if ($relationName) {
+                    if ($relationName && $optionsRelationName != 'self') {
                         $relationModelName = Arr::get($relationMetadata,'modelName');
                         if (!$relationModelName) {
                             throw new \Exception("Relation " . $relationName . " not found in compiling options.");
                         }
                     } else {
                         $relationModelName = $this->getModelName();
+                        if ($optionsRelationName == 'self') {
+                            $optionsRelationName = $relationName;
+                        }
                     }
 
                     $relations = $relationModelName::getRelationsData();
-                    $optionsRelationValue = explode(':',$options);
-                    $optionsRelationName = $optionsRelationValue[1];
 
                     $optionsRelationModelName = Arr::get(Arr::get($relations,$optionsRelationName,[]),'related');
                     if (!$optionsRelationModelName) {
@@ -596,6 +599,9 @@ abstract class Foorm
                     $options = $this->getForSelectList($optionsRelationName,$optionsRelationModel);
 
                     return $options;
+            case 'self':
+
+                return $this->getForSelectList($this->getModelName(),$this->getModel());
 
             default:
                 return [];
