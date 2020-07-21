@@ -323,8 +323,9 @@ class FoormList extends Foorm
 
         $arrayData = $this->formBuilder->toArray();
 
-        $arrayData['pagination_steps'] = Arr::get(Arr::get($this->config, 'pagination', []),'pagination_steps',[]);
+        $paginationSteps = Arr::get(Arr::get($this->config, 'pagination', []),'pagination_steps',[]);
 
+        $arrayData['pagination_steps'] = array_combine($paginationSteps,$paginationSteps);
         return $arrayData;
     }
 
