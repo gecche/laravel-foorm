@@ -13,8 +13,6 @@ class FoormDetail extends Foorm
     use ConstraintBuilderTrait;
     use FoormSingleTrait;
 
-    protected $extraDefaults = [];
-
     protected $inputForSave = null;
 
     protected $validator = null;

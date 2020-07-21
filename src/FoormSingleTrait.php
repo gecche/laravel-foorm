@@ -7,6 +7,7 @@ use Illuminate\Support\Arr;
 
 trait FoormSingleTrait
 {
+    protected $extraDefaults = [];
 
     /**
      * @return array
