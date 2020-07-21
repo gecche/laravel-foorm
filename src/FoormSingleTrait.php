@@ -112,7 +112,7 @@ trait FoormSingleTrait
         foreach ($modelFieldsKeys as $fieldKey) {
             $modelFields[$fieldKey] = array_key_exists($fieldKey, $extraDefaults)
                 ? $extraDefaults[$fieldKey]
-                : $this->guessDefaultForField($fieldKey,$this->config['fields'][$fieldKey]);
+                : $this->guessDefaultForField($fieldKey, $this->config['fields'][$fieldKey]);
         }
 
         $configRelations = array_keys(Arr::get($this->config, 'relations', []));
@@ -139,7 +139,7 @@ trait FoormSingleTrait
         foreach ($modelFieldsKeys as $fieldKey) {
             $modelFields[$fieldKey] = array_key_exists($fieldKey, $extraDefaults)
                 ? $extraDefaults[$fieldKey]
-                : $this->guessDefaultForField($fieldKey,$relationConfig['fields'][$fieldKey]);
+                : $this->guessDefaultForField($fieldKey, $relationConfig['fields'][$fieldKey]);
         }
 
         $configRelations = array_keys(Arr::get($relationConfig, 'relations', []));
@@ -158,12 +158,18 @@ trait FoormSingleTrait
 
     }
 
-    protected function guessDefaultForField($fieldKey,$fieldConfig) {
+    protected function guessDefaultForField($fieldKey, $fieldConfig)
+    {
 
         $defaultValue = Arr::get($fieldConfig, 'default');
 
-        if (is_null($defaultValue) && Arr::get($fieldConfig,'options')) {
-            $defaultValue = $this->config['null-value'];
+        if (is_null($defaultValue)) {
+            if (Arr::get($fieldConfig, 'options')) {
+                $defaultValue = $this->config['null-value'];
+            }
+            if (Arr::get($fieldConfig, 'referred_data')) {
+                $defaultValue = $this->config['null-value'];
+            }
         }
 
         return $defaultValue;
