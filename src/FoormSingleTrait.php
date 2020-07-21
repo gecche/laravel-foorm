@@ -4,6 +4,7 @@ namespace Gecche\Foorm;
 
 
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 
 trait FoormSingleTrait
 {
