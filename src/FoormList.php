@@ -251,6 +251,16 @@ class FoormList extends Foorm
             $this->formBuilder = $builder($this->formBuilder);
         }
 
+        $orderColumns = $this->model->getDefaultOrderColumns();
+
+        if (!$orderColumns || !is_array($orderColumns)) {
+            return $this->formBuilder;
+        }
+
+        foreach ($orderColumns as $field => $direction) {
+            $this->formBuilder = $this->buildOrder($this->formBuilder, $field, $direction);
+        }
+
         return $this->formBuilder;
 
     }
