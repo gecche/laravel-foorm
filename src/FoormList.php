@@ -356,13 +356,19 @@ class FoormList extends Foorm
         $collection = $this->formBuilder->getCollection();
 
 
+        $newCollection = $this->filterCollectionStandard($collection,$configFields,$hasManies,$belongsTos,$relationsConfigFields);
 //        echo "<pre>";
 //        print_r($collection->toArray());
 //        echo "</pre>";
 
 // build your second collection with a subset of attributes. this new
 // collection will be a collection of plain arrays, not Users models.
-        $newCollection = $collection->map(function ($model) use ($configFields,$hasManies,$belongsTos,$relationsConfigFields) {
+        $this->formBuilder->setCollection($newCollection);
+    }
+
+
+    protected function filterCollectionStandard($collection,$configFields,$hasManies,$belongsTos,$relationsConfigFields) {
+        return $collection->map(function ($model) use ($configFields,$hasManies,$belongsTos,$relationsConfigFields) {
 
 
 
@@ -386,7 +392,6 @@ class FoormList extends Foorm
 
             return $arrayFiltered;
         });
-        $this->formBuilder->setCollection($newCollection);
     }
 
     /**
