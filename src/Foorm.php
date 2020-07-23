@@ -562,7 +562,8 @@ abstract class Foorm
                     throw new \Exception("Relation " . $relationName . " not found in compiling options.");
                 }
                 $relationModel = new $relationModelName;
-                return $this->dbHelper->listEnumValues($fieldKey,$relationModel->getTable());
+                $relationFieldKey = Arr::get(explode("|",$fieldKey),1,$fieldKey);
+                return $this->dbHelper->listEnumValues($relationFieldKey,$relationModel->getTable());
 
             case 'method':
                 $methodName = 'createOptions'.Str::studly($fieldKey);
