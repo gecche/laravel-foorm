@@ -106,7 +106,8 @@ class FoormList extends Foorm
         $op = Arr::get($constraintArray, 'op', '=');
         $params = Arr::get($constraintArray, 'params', []);
 
-        $studlyField = Str::studly($field);
+        $fieldSanitized = str_replace('|','_',$field);
+        $studlyField = Str::studly($fieldSanitized);
 
         $methodName = 'buildSearchFilterField' . $studlyField;
 
