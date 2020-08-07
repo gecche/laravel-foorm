@@ -566,7 +566,9 @@ abstract class Foorm
                 return $this->dbHelper->listEnumValues($relationFieldKey,$relationModel->getTable());
 
             case 'method':
-                $methodName = 'createOptions'.Str::studly($fieldKey);
+
+                $fieldSanitized = str_replace('|','_',$fieldKey);
+                $methodName = 'createOptions'.Str::studly($fieldSanitized);
                 return $this->$methodName($fieldValue,$defaultOptionsValues,$relationName,$relationMetadata);
             case 'relation':
 
