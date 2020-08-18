@@ -6,6 +6,7 @@ namespace Gecche\Foorm;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class FoormDetail extends Foorm
 {
@@ -34,7 +35,7 @@ class FoormDetail extends Foorm
         if (!$this->validator->passes()) {
             $errors = $this->validator->errors()->getMessages();
             $errors = Arr::flatten($errors);
-            throw new \Exception(json_encode($errors));
+            throw ValidationException::withMessages($errors);
         }
 
         return true;
