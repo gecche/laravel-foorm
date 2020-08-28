@@ -41,6 +41,8 @@ trait FoormSingleTrait
     public function setModelData()
     {
 
+        $configData = $this->getAllFieldsAndDefaultsFromConfig();
+
         $relationsKeys = array_keys($this->getRelations());
 
         foreach ($relationsKeys as $relationKey) {
@@ -51,7 +53,6 @@ trait FoormSingleTrait
 
         $modelData = $this->model->toArray();
 
-        $configData = $this->getAllFieldsAndDefaultsFromConfig();
 
 
         $this->formData = $this->removeAndSetDefaultFromConfig($modelData, $configData);
