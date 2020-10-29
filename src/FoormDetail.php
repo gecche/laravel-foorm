@@ -30,6 +30,7 @@ class FoormDetail extends Foorm
         $rules = Arr::get($finalSettings, 'rules', []);
         $customMessages = Arr::get($finalSettings, 'customMessages', []);
         $customAttributes = Arr::get($finalSettings, 'customAttributes', []);
+
         $this->validator = Validator::make($input, $rules, $customMessages, $customAttributes);
 
         if (!$this->validator->passes()) {
@@ -40,7 +41,6 @@ class FoormDetail extends Foorm
 
         return true;
     }
-
 
     public
     function getValidationSettings($input, $rules)
@@ -70,23 +70,29 @@ class FoormDetail extends Foorm
             $hasManyValidationSettings = $hasManyModel->getModelValidationSettings();
 
             $hasManyRules = Arr::get($hasManyValidationSettings, 'rules', []);
-            foreach ($hasManyRules as $hasManyRuleKey => $hasManyRuleValue) {
-                $valueRules = explode('|', $hasManyRuleValue);
-
-                //TODO: per ora le regole che sono già array le elvo perché troppo icnasinato e probabilmente sono casi stralimite.
-                //$nestedLevelRules = array();
-                foreach ($valueRules as $keyRule => $rule) {
-                    if (substr($rule, -5) === 'Array') {
-                        //$nestedLevelRules[$keyRule] = $rule;
-                        //Array nested per il momento non supportati! :) e quindi eliminati!!!
-                        unset($valueRules[$keyRule]);
-                        continue;
-                    }
-                    $valueRules[$keyRule] = $rule . 'Array';
-                }
-                $hasManyRules[$hasManyRuleKey] = implode('|', $valueRules);
-            }
             $hasManyRules = array_key_append($hasManyRules, $key . '-', false);
+            $hasManyRules = array_key_append($hasManyRules,  '.*', true);
+//            $newHasManyRules = [];
+//            foreach ($hasManyRules as $hasManyRuleKey => $hasManyRuleValue) {
+//                $newHasManyRules[$key.'*'.$hasManyRuleKey] => $hasManyRuleValue;
+//            }
+//            foreach ($hasManyRules as $hasManyRuleKey => $hasManyRuleValue) {
+//                $valueRules = explode('|', $hasManyRuleValue);
+//
+//                //TODO: per ora le regole che sono già array le elvo perché troppo icnasinato e probabilmente sono casi stralimite.
+//                //$nestedLevelRules = array();
+//                foreach ($valueRules as $keyRule => $rule) {
+//                    if (substr($rule, -5) === 'Array') {
+//                        //$nestedLevelRules[$keyRule] = $rule;
+//                        //Array nested per il momento non supportati! :) e quindi eliminati!!!
+//                        unset($valueRules[$keyRule]);
+//                        continue;
+//                    }
+//                    $valueRules[$keyRule] = $rule . 'Array';
+//                }
+//                $hasManyRules[$hasManyRuleKey] = implode('|', $valueRules);
+//            }
+//            $hasManyRules = array_key_append($hasManyRules, $key . '-', false);
 
             $hasManyValidationSettings['rules'] = $hasManyRules;
             //$this->validationRules[] =
