@@ -184,7 +184,10 @@ class FoormDetail extends Foorm
     protected function transformRelationsAsOptions($input) {
         foreach ($this->relationsAsOptions as $key => $field) {
             $relationField = $key .'-'.$field;
-            $input[$relationField] = Arr::get($input,$key,[]);
+            $values = Arr::get($input,$key,[]);
+            $input[$relationField] = $values;
+//            $relationFieldStatus = $key .'-status';
+//            $input[$relationFieldStatus] = array_fill(0,count($values),'new');
             unset($input[$key]);
         }
         return $input;
@@ -304,7 +307,7 @@ class FoormDetail extends Foorm
                 case 'new':
 
                     $inputArray = [];
-                    foreach ($this->getRelationFieldsFromConfig($hasManyKey) as $key) {
+                    foreach ($this->getRelationFieldsFromConfig($hasManyKey) as $key => $value) {
                         if (array_key_exists($key, $hasManyInputs) && array_key_exists($i, $hasManyInputs[$key])) {
                             $inputArray[$key] = $hasManyInputs[$key][$i];
                         }
