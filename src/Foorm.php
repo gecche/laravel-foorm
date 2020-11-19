@@ -57,6 +57,7 @@ abstract class Foorm
 
     protected $hasManies;
     protected $belongsTos;
+    protected $relationsAsOptions = [];
 
     protected $flatFields;
 
@@ -104,61 +105,62 @@ abstract class Foorm
 
     }
 
-    protected function init() {
+    protected function init()
+    {
         return;
     }
 
-    public function initFormData() {
+    public function initFormData()
+    {
         $this->formData = null;
     }
 
 
-    protected function prepareFoormInternalData() {
+    protected function prepareFoormInternalData()
+    {
 
         $this->buildFlatFields();
 
     }
 
-    protected function buildFlatFields() {
+    protected function buildFlatFields()
+    {
         $config = $this->getConfig();
-        $this->flatFields = array_fill_keys(array_keys(Arr::get($config,'fields',[])),'field');
-        $relations = array_fill_keys(array_keys(Arr::get($config,'relations',[])),'relation');
-        $this->flatFields = array_merge($this->flatFields,$relations);
+        $this->flatFields = array_fill_keys(array_keys(Arr::get($config, 'fields', [])), 'field');
+        $relations = array_fill_keys(array_keys(Arr::get($config, 'relations', [])), 'relation');
+        $this->flatFields = array_merge($this->flatFields, $relations);
 
 
         foreach (array_keys($relations) as $relation) {
 
 
-
-            $relationFields = array_key_append(Arr::get($config['relations'][$relation],'fields',[]),$relation.'|',false);
+            $relationFields = array_key_append(Arr::get($config['relations'][$relation], 'fields', []), $relation . '|', false);
             $this->flatFields = array_merge(
-                array_fill_keys(array_keys($relationFields),'relationfield'), $this->flatFields
+                array_fill_keys(array_keys($relationFields), 'relationfield'), $this->flatFields
             );
         }
-
-
-
 
 
     }
 
 
-    public function getFlatFields($what = 'full',$onlyKeys = true) {
+    public function getFlatFields($what = 'full', $onlyKeys = true)
+    {
 
         $flatFields = $this->flatFields;
         switch ($what) {
             case 'fields':
             case 'relations':
-                $flatFields = array_filter($flatFields,function ($value,$key) use ($what) {
+                $flatFields = array_filter($flatFields, function ($value, $key) use ($what) {
                     return $value == $what;
-                },ARRAY_FILTER_USE_BOTH);
+                }, ARRAY_FILTER_USE_BOTH);
                 break;
             default:
-                if (Str::startsWith($what,'fields:')) {
-                    $relation = substr($what,7);
-                    $flatFields = array_filter($flatFields,function ($key) use ($relation) {
-                        return Str::startsWith($key,$relation);
-                    },ARRAY_FILTER_USE_KEY);
+                if (Str::startsWith($what, 'fields:')) {
+                    $relation = substr($what, 7);
+                    $flatFields = array_filter($flatFields, function ($key) use ($relation) {
+                        return Str::startsWith($key, $relation);
+                    }, ARRAY_FILTER_USE_KEY);
                 }
                 break;
         }
@@ -170,9 +172,10 @@ abstract class Foorm
 
     }
 
-    public function hasFlatField($field,$type = null) {
+    public function hasFlatField($field, $type = null)
+    {
 
-        if (!array_key_exists($field,$this->flatFields)) {
+        if (!array_key_exists($field, $this->flatFields)) {
             return false;
         }
 
@@ -217,11 +220,9 @@ abstract class Foorm
     }
 
 
-
-
     public function getModelsNamespace()
     {
-        return Arr::get($this->config,'models_namespace');
+        return Arr::get($this->config, 'models_namespace');
     }
 
     /**
@@ -253,7 +254,7 @@ abstract class Foorm
      */
     public function getModelName()
     {
-        return Arr::get($this->config,'full_model_name');
+        return Arr::get($this->config, 'full_model_name');
     }
 
     /**
@@ -261,7 +262,7 @@ abstract class Foorm
      */
     public function getModelRelativeName()
     {
-        return Arr::get($this->config,'relative_model_name');
+        return Arr::get($this->config, 'relative_model_name');
     }
 
     /**
@@ -271,8 +272,6 @@ abstract class Foorm
     {
         return $this->primary_key_field;
     }
-
-
 
 
     public function getRelations()
@@ -302,9 +301,9 @@ abstract class Foorm
 
         $relations = $modelName::getRelationsData();
 
-        $configRelations = array_keys(Arr::get($this->config,'relations',[]));
+        $configRelations = array_keys(Arr::get($this->config, 'relations', []));
 
-        $relationsToUnset = array_diff(array_keys($relations),$configRelations);
+        $relationsToUnset = array_diff(array_keys($relations), $configRelations);
 
         foreach ($relationsToUnset as $relationToUnset) {
             unset($relations[$relationToUnset]);
@@ -316,20 +315,18 @@ abstract class Foorm
     }
 
 
-
-
     public function getRelationFieldsFromConfig($relation)
     {
-        return $this->getRelationConfig($relation,'fields', []);
+        return $this->getRelationConfig($relation, 'fields', []);
     }
 
-    public function getRelationConfig($relation,$key = null, $defaultValue = null)
+    public function getRelationConfig($relation, $key = null, $defaultValue = null)
     {
-        $macroType = Arr::get(Arr::get($this->getRelations(), $relation, []),'macroType');
+        $macroType = Arr::get(Arr::get($this->getRelations(), $relation, []), 'macroType');
         if ($macroType == 'hasMany') {
-            $relationConfig = Arr::get($this->hasManies,$relation,[]);
+            $relationConfig = Arr::get($this->hasManies, $relation, []);
         } elseif ($macroType == 'belongsTo') {
-            $relationConfig = Arr::get($this->belongsTos,$relation,[]);
+            $relationConfig = Arr::get($this->belongsTos, $relation, []);
         } else {
             $relationConfig = [];
         }
@@ -353,19 +350,18 @@ abstract class Foorm
 
         $relations = $this->getRelations();
 
-        $configRelations = Arr::get($this->config,'relations',[]);
+        $configRelations = Arr::get($this->config, 'relations', []);
 
         $this->hasManies = [];
 
 
-
         foreach ($relations as $relationName => $relationFromModel) {
 
-            if (!array_key_exists($relationName,$configRelations)) {
+            if (!array_key_exists($relationName, $configRelations)) {
                 continue;
             }
 
-            $configRelationMetadata = Arr::get($configRelations,$relationName,[]);
+            $configRelationMetadata = Arr::get($configRelations, $relationName, []);
 
             $relationConfig = [];
 
@@ -393,10 +389,25 @@ abstract class Foorm
             $relationConfig['relationName'] = $relationName;
 
 
-            $relationConfig = array_merge($relationConfig,$configRelationMetadata);
+            $relationConfig = array_merge($relationConfig, $configRelationMetadata);
+
+            $relationAsOptions = Arr::get($relationConfig, 'as_options');
+            if (is_array($relationAsOptions)) {
+                $optionField = Arr::get($relationAsOptions, 'field', 'id');
+                $this->relationsAsOptions[$relationName] = $optionField;
+                $asOptionsFields = [
+                    $optionField => [
+                        'options' => Arr::get($relationAsOptions, 'options', 'relation:' . $relationName),
+                    ],
+                ];
+                $relationConfig['fields'] = $asOptionsFields;
+                $this->config['relations'][$relationName]['fields'] = $asOptionsFields;
+            }
+
 
             $this->hasManies[$relationName] = $relationConfig;
             $this->relations[$relationName]['macroType'] = 'hasMany';
+
 
         }
 
@@ -420,17 +431,17 @@ abstract class Foorm
 
         $relations = $this->getRelations();
 
-        $configRelations = Arr::get($this->config,'relations',[]);
+        $configRelations = Arr::get($this->config, 'relations', []);
 
         $this->belongsTos = [];
 
         foreach ($relations as $relationName => $relationFromModel) {
 
-            if (!array_key_exists($relationName,$configRelations)) {
+            if (!array_key_exists($relationName, $configRelations)) {
                 continue;
             }
 
-            $configRelationMetadata = Arr::get($configRelations,$relationName,[]);
+            $configRelationMetadata = Arr::get($configRelations, $relationName, []);
 
             $relationConfig = [];
 
@@ -448,7 +459,7 @@ abstract class Foorm
             $relationConfig['modelName'] = $relationFromModel['related'];
             $relationConfig['modelRelativeName'] = trim_namespace($this->getModelsNamespace(), $relationFromModel['related']);
 
-            $relationConfig = array_merge($relationConfig,$configRelationMetadata);
+            $relationConfig = array_merge($relationConfig, $configRelationMetadata);
 
             $this->belongsTos[$relationName] = $relationConfig;
             $this->relations[$relationName]['macroType'] = 'belongsTo';
@@ -490,7 +501,6 @@ abstract class Foorm
     abstract public function getFormData();
 
 
-
     public function getFormMetadata()
     {
         if (is_null($this->formMetadata)) {
@@ -503,7 +513,8 @@ abstract class Foorm
 
     }
 
-    public function cleanMetadata($metadata) {
+    public function cleanMetadata($metadata)
+    {
 
         $relationFieldsToUnset = [
             //'modelRelativeName',
@@ -521,7 +532,7 @@ abstract class Foorm
             'afterDeleteCallbackMethods',
         ];
 
-        foreach (Arr::get($metadata,'relations',[]) as $key => $relation) {
+        foreach (Arr::get($metadata, 'relations', []) as $key => $relation) {
 
             foreach ($relationFieldsToUnset as $field) {
                 unset($relation[$field]);
@@ -533,7 +544,7 @@ abstract class Foorm
 
     }
 
-    protected function createOptions($fieldKey, $fieldValue, $defaultOptionsValues,$relationName = null,$relationMetadata = [])
+    protected function createOptions($fieldKey, $fieldValue, $defaultOptionsValues, $relationName = null, $relationMetadata = [])
     {
 
         $options = $fieldValue['options'];
@@ -542,7 +553,7 @@ abstract class Foorm
             return $options;
         }
 
-        $optionType = current(explode(':',$options));
+        $optionType = current(explode(':', $options));
 
 
         switch ($optionType) {
@@ -555,56 +566,56 @@ abstract class Foorm
                 ];
             case 'dboptions':
                 if (is_null($relationName)) {
-                    return $this->dbHelper->listEnumValues($fieldKey,$this->getModel()->getTable());
+                    return $this->dbHelper->listEnumValues($fieldKey, $this->getModel()->getTable());
                 }
-                $relationModelName = Arr::get($relationMetadata,'modelName');
+                $relationModelName = Arr::get($relationMetadata, 'modelName');
                 if (!$relationModelName) {
                     throw new \Exception("Relation " . $relationName . " not found in compiling options.");
                 }
                 $relationModel = new $relationModelName;
-                $relationFieldKey = Arr::get(explode("|",$fieldKey),1,$fieldKey);
-                return $this->dbHelper->listEnumValues($relationFieldKey,$relationModel->getTable());
+                $relationFieldKey = Arr::get(explode("|", $fieldKey), 1, $fieldKey);
+                return $this->dbHelper->listEnumValues($relationFieldKey, $relationModel->getTable());
 
             case 'method':
 
-                $fieldSanitized = str_replace('|','_',$fieldKey);
-                $methodName = 'createOptions'.Str::studly($fieldSanitized);
-                return $this->$methodName($fieldValue,$defaultOptionsValues,$relationName,$relationMetadata);
+                $fieldSanitized = str_replace('|', '_', $fieldKey);
+                $methodName = 'createOptions' . Str::studly($fieldSanitized);
+                return $this->$methodName($fieldValue, $defaultOptionsValues, $relationName, $relationMetadata);
             case 'relation':
 
-                    Log::info(print_r($this->getModelName(),true));
+                Log::info(print_r($this->getModelName(), true));
 
-                    $optionsRelationValue = explode(':',$options);
-                    $optionsRelationName = $optionsRelationValue[1];
-                    /*
-                     * Prendo tutte le relazioni del modello anche quelle non in configurazione
-                     */
-                    if ($relationName && $optionsRelationName != 'self') {
-                        $relationModelName = Arr::get($relationMetadata,'modelName');
-                        if (!$relationModelName) {
-                            throw new \Exception("Relation " . $relationName . " not found in compiling options.");
-                        }
-                    } else {
-                        $relationModelName = $this->getModelName();
-                        if ($optionsRelationName == 'self') {
-                            $optionsRelationName = $relationName;
-                        }
+                $optionsRelationValue = explode(':', $options);
+                $optionsRelationName = $optionsRelationValue[1];
+                /*
+                 * Prendo tutte le relazioni del modello anche quelle non in configurazione
+                 */
+                if ($relationName && $optionsRelationName != 'self') {
+                    $relationModelName = Arr::get($relationMetadata, 'modelName');
+                    if (!$relationModelName) {
+                        throw new \Exception("Relation " . $relationName . " not found in compiling options.");
                     }
-
-                    $relations = $relationModelName::getRelationsData();
-
-                    $optionsRelationModelName = Arr::get(Arr::get($relations,$optionsRelationName,[]),'related');
-                    if (!$optionsRelationModelName) {
-                        throw new \Exception("Relation " . $optionsRelationName . " not found in compiling options.");
+                } else {
+                    $relationModelName = $this->getModelName();
+                    if ($optionsRelationName == 'self') {
+                        $optionsRelationName = $relationName;
                     }
+                }
 
-                    $optionsRelationModel = new $optionsRelationModelName;
-                    $options = $this->getForSelectList($optionsRelationName,$optionsRelationModel);
+                $relations = $relationModelName::getRelationsData();
 
-                    return $options;
+                $optionsRelationModelName = Arr::get(Arr::get($relations, $optionsRelationName, []), 'related');
+                if (!$optionsRelationModelName) {
+                    throw new \Exception("Relation " . $optionsRelationName . " not found in compiling options.");
+                }
+
+                $optionsRelationModel = new $optionsRelationModelName;
+                $options = $this->getForSelectList($optionsRelationName, $optionsRelationModel);
+
+                return $options;
             case 'self':
 
-                return $this->getForSelectList($this->getModelName(),$this->getModel());
+                return $this->getForSelectList($this->getModelName(), $this->getModel());
 
             default:
                 return [];
@@ -614,19 +625,21 @@ abstract class Foorm
     }
 
 
-    protected function getForSelectList($relationName,$relationModel) {
+    protected function getForSelectList($relationName, $relationModel)
+    {
         return $relationModel->getForSelectList(null, null, [], null, null);
     }
 
 
-    public function createOptionsOrder($fieldKey,$fieldValue) {
+    public function createOptionsOrder($fieldKey, $fieldValue)
+    {
         return array_keys($fieldValue['options']);
     }
 
-    protected function setPredefinedOption($type ,$fieldValue, $options, $hasPredefinedOption, $defaultOptionsValues)
+    protected function setPredefinedOption($type, $fieldValue, $options, $hasPredefinedOption, $defaultOptionsValues)
     {
 
-        if (!in_array($type,['null','any','no'])) {
+        if (!in_array($type, ['null', 'any', 'no'])) {
             throw new \InvalidArgumentException("Predefined option not allowed");
         }
 
@@ -634,9 +647,9 @@ abstract class Foorm
             return $options;
         }
 
-        $predefinedLabel = Arr::get($fieldValue, $type.'-label', $defaultOptionsValues[$type.'-label']);
+        $predefinedLabel = Arr::get($fieldValue, $type . '-label', $defaultOptionsValues[$type . '-label']);
 
-        $predefinedOption = [$defaultOptionsValues[$type.'-value'] =>
+        $predefinedOption = [$defaultOptionsValues[$type . '-value'] =>
             ucfirst(trans($predefinedLabel))];
 
         return $predefinedOption + $options;
@@ -647,7 +660,8 @@ abstract class Foorm
     //Mi posso aspettare string o array
     //Nel caso di string, se il campo è vuoto o è un array con il primo elemento vuoto ritorno null
     //Nel caso di array se è vuoto o se tutti gli elementi sono null ritorno null, se c'è un no-value ritorno no-value
-    protected function guessInputValue($value,$expected = 'string') {
+    protected function guessInputValue($value, $expected = 'string')
+    {
         if ($expected === 'array') {
             $value = Arr::wrap($value);
             foreach ($value as $valuePart) {
@@ -677,19 +691,20 @@ abstract class Foorm
     }
 
 
-    public function filterPredefinedValuesFromInput($value) {
+    public function filterPredefinedValuesFromInput($value)
+    {
 
         $nullValue = $this->config['null-value'];
         $anyValue = $this->config['null-value'];
         $noValue = $this->config['no-value'];
 
         if (is_string($value)) {
-          if (in_array($value,[$nullValue,$anyValue])) {
-            return null;
-          } elseif (in_array($value,[$noValue])) {
-              return 'no-value';
-          }
-          return $value;
+            if (in_array($value, [$nullValue, $anyValue])) {
+                return null;
+            } elseif (in_array($value, [$noValue])) {
+                return 'no-value';
+            }
+            return $value;
         }
 
         if (is_array($value)) {
@@ -701,21 +716,24 @@ abstract class Foorm
         return $value;
     }
 
-    protected function setFormMetadataFields() {
+    protected function setFormMetadataFields()
+    {
         $fields = Arr::get($this->config, 'fields', []);
         $this->formMetadata['fields'] = $this->fillFormMetadataFields($fields);
 
         return $fields;
     }
 
-    protected function fillFormMetadataFields($fields = [],$relationName = null,$relationMetadata = []) {
+    protected function fillFormMetadataFields($fields = [], $relationName = null, $relationMetadata = [])
+    {
 
-        $fields = $this->manageMetadataFieldOptions($fields,$relationName,$relationMetadata);
+        $fields = $this->manageMetadataFieldOptions($fields, $relationName, $relationMetadata);
 
         return $fields;
     }
 
-    protected function manageMetadataFieldOptions($fields = [],$relationName = null,$relationMetadata = []) {
+    protected function manageMetadataFieldOptions($fields = [], $relationName = null, $relationMetadata = [])
+    {
         /*
          * AnyValue e NullValue convergono su NullValue
          */
@@ -734,11 +752,11 @@ abstract class Foorm
         foreach ($fields as $fieldKey => $fieldValue) {
 
             if (Arr::get($fieldValue, 'options')) {
-                $options = $this->createOptions($fieldKey, $fieldValue, $defaultOptionsValues,$relationName,$relationMetadata);
+                $options = $this->createOptions($fieldKey, $fieldValue, $defaultOptionsValues, $relationName, $relationMetadata);
 
                 $hasNullOption = Arr::get($fieldValue, 'nulloption', true);
                 if ($hasNullOption) {
-                    $options = $this->setPredefinedOption('null',$fieldValue, $options, $hasNullOption, $defaultOptionsValues);
+                    $options = $this->setPredefinedOption('null', $fieldValue, $options, $hasNullOption, $defaultOptionsValues);
                 }
 
                 $hasAnyOption = Arr::get($fieldValue, 'anyoption', false);
@@ -754,7 +772,7 @@ abstract class Foorm
 
                 unset($fieldValue['nulloption']);
 
-                $fieldValue['options_order'] = $this->createOptionsOrder($fieldKey,$fieldValue);
+                $fieldValue['options_order'] = $this->createOptionsOrder($fieldKey, $fieldValue);
             }
 
             $fields[$fieldKey] = $fieldValue;
@@ -765,14 +783,21 @@ abstract class Foorm
 
     }
 
-    protected function setFormMetadataRelations() {
+    protected function setFormMetadataRelations()
+    {
 
         $relations = [];
 
 
         foreach ($this->hasManies as $key => $relationMetadata) {
-            $relationMetadata['fields'] = $this->fillFormMetadataFields(Arr::get($relationMetadata,'fields',[])
-                ,$key,$relationMetadata);
+            $fields = Arr::get($relationMetadata, 'fields', []);
+            if (array_key_exists($key, $this->relationsAsOptions)) {
+
+                $relationMetadata = Arr::get($this->fillFormMetadataFields($fields)
+                    , $this->relationsAsOptions[$key], []);
+            } else {
+                $relationMetadata['fields'] = $this->fillFormMetadataFields($fields, $key, $relationMetadata);
+            }
             $relations[$key] = $relationMetadata;
         }
 
@@ -799,12 +824,13 @@ abstract class Foorm
     /**
      * Append or prepend a string to each key of an array.
      *
-     * @param  array $array
-     * @param  string $prefix
-     * @param  boolean $append (append or prepend the prefix)
+     * @param array $array
+     * @param string $prefix
+     * @param boolean $append (append or prepend the prefix)
      * @return string
      */
-    protected function array_key_append($array, $prefix, $append = true) {
+    protected function array_key_append($array, $prefix, $append = true)
+    {
         $new_keys = array();
         foreach (array_keys($array) as $key) {
             if ($append)

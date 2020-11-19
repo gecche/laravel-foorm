@@ -35,6 +35,12 @@ trait FoormSingleTrait
             return;
         }
 
+        foreach ($this->relationsAsOptions as $relation => $field) {
+            if (is_array($this->formData[$relation])) {
+                $this->formData[$relation] = Arr::pluck($this->formData[$relation],$field);
+            }
+        }
+
     }
 
 

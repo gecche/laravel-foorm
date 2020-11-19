@@ -150,7 +150,7 @@ class FoormDetail extends Foorm
     function save($input = null, $validate = true)
     {
 
-        $this->inputForSave = is_array($input) ? $input : $this->input;
+        $this->inputForSave = is_array($input) ? $input : $this->setInputForSave();
 
         $this->setFixedConstraints($this->inputForSave);
 
@@ -171,6 +171,24 @@ class FoormDetail extends Foorm
         return $saved;
     }
 
+    protected function setInputForSave() {
+
+        $inputForSave = $this->input;
+
+        $inputForSave = $this->transformRelationsAsOptions($inputForSave);
+
+        return $inputForSave;
+
+    }
+
+    protected function transformRelationsAsOptions($input) {
+        foreach ($this->relationsAsOptions as $key => $field) {
+            $relationField = $key .'-'.$field;
+            $input[$relationField] = Arr::get($input,$key,[]);
+            unset($input[$key]);
+        }
+        return $input;
+    }
 
     protected
     function setFieldsToModel($model, $configFields, $input)
