@@ -18,6 +18,9 @@ trait HasFoormHelpers
 
     protected $keynameInList = 'keyname';
 
+    public $completionItemFunction = null;
+
+
 
     public function getForSelectList($builder = null, $columns = null, $params = [], $listValuesFunc = null, $postFormatFunc = 'sortASC')
     {
@@ -307,6 +310,10 @@ trait HasFoormHelpers
         return $relations;
     }
 
+    public function setCompletionItemFunction(\Closure $function) {
+        $this->completionItemFunction = $function;
+    }
+
     public function setCompletionItem($result, $labelColumns)
     {
 
@@ -316,9 +323,7 @@ trait HasFoormHelpers
 
         $n_items = count($items);
 
-
-
-        $items = $result->map(function ($item) use ($labelColumns) {
+        $function = $this->completionItemFunction ?: function ($item) use ($labelColumns) {
             $filteredItem = [];
 
             $item = $item->toArray();
@@ -336,7 +341,9 @@ trait HasFoormHelpers
             }
 
             return $filteredItem;
-        });
+        };
+
+        $items = $result->map($function);
 
 
         return [$items, $n_items, $ids];
