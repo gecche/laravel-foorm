@@ -71,7 +71,7 @@ class FoormDetail extends Foorm
 
             $hasManyRules = Arr::get($hasManyValidationSettings, 'rules', []);
             $hasManyRules = array_key_append($hasManyRules, $key . '-', false);
-            $hasManyRules = array_key_append($hasManyRules,  '.*', true);
+            $hasManyRules = array_key_append($hasManyRules, '.*', true);
 //            $newHasManyRules = [];
 //            foreach ($hasManyRules as $hasManyRuleKey => $hasManyRuleValue) {
 //                $newHasManyRules[$key.'*'.$hasManyRuleKey] => $hasManyRuleValue;
@@ -171,7 +171,8 @@ class FoormDetail extends Foorm
         return $saved;
     }
 
-    protected function setInputForSave() {
+    protected function setInputForSave()
+    {
 
         $inputForSave = $this->input;
 
@@ -181,10 +182,11 @@ class FoormDetail extends Foorm
 
     }
 
-    protected function transformRelationsAsOptions($input) {
+    protected function transformRelationsAsOptions($input)
+    {
         foreach ($this->relationsAsOptions as $key => $field) {
-            $relationField = $key .'-'.$field;
-            $values = Arr::get($input,$key,[]);
+            $relationField = $key . '-' . $field;
+            $values = Arr::get($input, $key, []);
             $input[$relationField] = $values;
 //            $relationFieldStatus = $key .'-status';
 //            $input[$relationFieldStatus] = array_fill(0,count($values),'new');
@@ -347,9 +349,21 @@ class FoormDetail extends Foorm
         $statusKey = $this->getRelationConfig($hasManyKey, 'statusKey', 'status');
         $orderKey = $this->getRelationConfig($hasManyKey, 'orderKey');
 
+        $currentPks = $this->model->$hasManyKey
+            ->pluck($hasManyModel->getKeyName(), $hasManyModel->getKeyName())->all();
+
+        $foundPks = [];
+
         foreach (Arr::get($hasManyInputs, $pkName, []) as $i => $pk) {
 
-            $status = $hasManyInputs[$statusKey][$i];
+//            $status = $hasManyInputs[$statusKey][$i];
+
+            if (in_array($pk, $currentPks)) {
+                $status = 'updated';
+                $foundPks[$pk] = $pk;
+            } else {
+                $status = 'new';
+            }
 
             $inputArray = [];
             foreach (array_keys($this->getRelationFieldsFromConfig($hasManyKey)) as $key) {
@@ -358,10 +372,10 @@ class FoormDetail extends Foorm
                 }
             }
 
+            unset($inputArray[$statusKey]);
             if ($orderKey) {
                 $inputArray[$orderKey] = $i;
             }
-            unset($inputArray[$statusKey]);
 
             //SALVARE
             switch ($status) {
@@ -371,19 +385,11 @@ class FoormDetail extends Foorm
                     $this->model->$hasManyKey()->save($hasManyModel);
                     $this->performCallbacksSaveRelatedOperation($hasManyKey, 'afterNewCallbackMethods', $hasManyModel, $inputArray);
                     break;
-                case 'old':
-                    break;
                 case 'updated':
                     $hasManyModel = $hasManyModelName::find($pk);
-                    $this->performCallbacksSaveRelatedOperation($hasManyKey, 'beforeNewCallbackMethods', $hasManyModel, $inputArray);
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey, 'beforeUpdateCallbackMethods', $hasManyModel, $inputArray);
                     $hasManyModel->update($inputArray);
                     $this->performCallbacksSaveRelatedOperation($hasManyKey, 'afterUpdateCallbackMethods', $hasManyModel, $inputArray);
-                    break;
-                case 'deleted':
-                    $this->performCallbacksSaveRelatedOperation($hasManyKey, 'beforeDeleteCallbackMethods', $hasManyModel, $inputArray);
-                    $hasManyModelName::destroy($pk);
-                    //Questo non so se ha senso.
-                    $this->performCallbacksSaveRelatedOperation($hasManyKey, 'afterDeleteCallbackMethods', $hasManyModel, $inputArray);
                     break;
                 default:
                     throw new \Exception("Invalid status " . $status);
@@ -391,6 +397,18 @@ class FoormDetail extends Foorm
             }
 
         }
+
+        $notFoundPks = array_diff($currentPks, $foundPks);
+
+        foreach ($notFoundPks as $pkToDelete) {
+            $this->performCallbacksSaveRelatedOperation($hasManyKey, 'beforeDeleteCallbackMethods', $hasManyModel, $inputArray);
+            $hasManyModelName::destroy($pkToDelete);
+            //Questo non so se ha senso.
+            $this->performCallbacksSaveRelatedOperation($hasManyKey, 'afterDeleteCallbackMethods', $hasManyModel, $inputArray);
+            break;
+        }
+
+
         $this->model->load($hasManyKey);
 
     }
