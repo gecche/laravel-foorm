@@ -222,7 +222,7 @@ class FoormDetail extends Foorm
     {
         $saved = $this->model->save();
         if (!$saved) {
-            throw new \Exception($this->model->errors());
+            throw new \Exception("Problemi nel salvataggio");
         }
 
         $this->model = $this->model->fresh();
@@ -254,12 +254,16 @@ class FoormDetail extends Foorm
                 $hasManyType = $hasManyType . Str::studly($saveType);
             }
 
-            $hasManyInputs = preg_grep_keys('/^' . $hasManyKey . '-/', $input);
-            $hasManyInputs = trim_keys($hasManyKey . '-', $hasManyInputs);
+            $hasManyInputs = $this->getHasManyInputs($hasManyKey,$input);
             $this->$saveRelatedName($hasManyType, $hasManyKey, $hasManyValue, $hasManyInputs, $saveParams);
         }
     }
 
+    protected function getHasManyInputs($hasManyKey,$input) {
+        $hasManyInputs = preg_grep_keys('/^' . $hasManyKey . '-/', $input);
+        $hasManyInputs = trim_keys($hasManyKey . '-', $hasManyInputs);
+        return $hasManyInputs;
+    }
 
     /*
      * Salvataggio classico di belogns to many con aggancio/sgancio dei modelli dal modello principale e gestione dei
