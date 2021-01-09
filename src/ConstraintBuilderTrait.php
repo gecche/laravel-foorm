@@ -31,7 +31,7 @@ trait ConstraintBuilderTrait
 
         $studly_op = Str::studly($op);
 
-        $methodName = 'buildSearchFilter' . $studly_op;
+        $methodName = 'buildConstraint' . $studly_op;
 
         //Se esiste il metodo specifico lo chiamo
         if (method_exists($this, $methodName)) {
@@ -218,7 +218,7 @@ trait ConstraintBuilderTrait
 
         $studly_op = Str::studly($op);
 
-        $methodName = 'buildSearchFilterRelation' . $studly_op;
+        $methodName = 'buildConstraintRelation' . $studly_op;
 
         if (method_exists($this, $methodName)) {
             return $this->$methodName($builder, $field, $value, $params);
@@ -424,7 +424,7 @@ trait ConstraintBuilderTrait
     * Constraint for handling the jquery datatable search standard format
     * Questo è tutto da rivedere perché bisogna vedere come funziona datatable era una cosa particolare.
     */
-    public function buildSearchFilterDatatable($builder, $field, $value, $params = [])
+    public function buildConstraintDatatable($builder, $field, $value, $params = [])
     {
 
         $searchFields = Arr::get($params, 'datatable_fields', []);
