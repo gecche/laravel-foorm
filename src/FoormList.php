@@ -37,6 +37,10 @@ class FoormList extends Foorm
      */
     protected $formAggregatesBuilder;
 
+    /*
+     * @var Array|null;
+     */
+    protected $paginateSelect;
 
     protected $customFuncs = [];
 
@@ -279,10 +283,13 @@ class FoormList extends Foorm
 
         $page = Arr::get($paginationInput, 'page', 1);
 
-        $paginateSelect = is_array(Arr::get($this->config,'paginate_select',false))
-            ? $this->paginateSelect
-            : ["*"];
-
+        $paginateSelect = Arr::get($this->config,'paginate_select',false);
+        if (!is_array($paginateSelect)) {
+            $paginateSelect = $this->paginateSelect;
+        }
+        if (!is_array($paginateSelect)) {
+            $paginateSelect = ["*"];
+        }
 
         if ($perPage < 0) {
             //No pagination: set a fixed big value in order to have the same output structure
