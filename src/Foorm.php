@@ -665,7 +665,7 @@ abstract class Foorm
         if ($expected === 'array') {
             $value = Arr::wrap($value);
             foreach ($value as $valuePart) {
-                if ($valuePart == $this->config['no-value']) {
+                if ($valuePart === 'no-value') {
                     return $this->config['no-value'];
                 }
                 if ($valuePart) {

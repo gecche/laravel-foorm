@@ -48,7 +48,7 @@ trait ConstraintBuilderTrait
         if (is_null($value)) {
             return $builder;
         }
-        if ($value == $this->config['no-value']) {
+        if ($value === 'no-value') {
             return $builder->whereNull($field);
         }
 
@@ -108,7 +108,7 @@ trait ConstraintBuilderTrait
         if (is_null($value)) {
             return $builder;
         }
-        if ($value == $this->config['no-value']) {
+        if ($value === 'no-value') {
             return $builder->whereNull($field);
         }
 
@@ -168,7 +168,7 @@ trait ConstraintBuilderTrait
         if (is_null($value)) {
             return $builder;
         }
-        if ($value == $this->config['no-value']) {
+        if ($value === 'no-value') {
             return $builder->whereNull($field);
         }
 
@@ -234,7 +234,7 @@ trait ConstraintBuilderTrait
         if (is_null($value)) {
             return $builder;
         }
-        if ($value == $this->config['no-value']) {
+        if ($value === 'no-value') {
             return $builder->whereHas($relation, function ($q) use ($field) {
                 $q->whereNotNull($field);
             });
@@ -306,7 +306,7 @@ trait ConstraintBuilderTrait
         if (is_null($value)) {
             return $builder;
         }
-        if ($value == $this->config['no-value']) {
+        if ($value === 'no-value') {
             return $builder->whereHas($relation, function ($q) use ($field) {
                 $q->whereNotNull($field);
             });
@@ -373,7 +373,7 @@ trait ConstraintBuilderTrait
         if (is_null($value)) {
             return $builder;
         }
-        if ($value == $this->config['no-value']) {
+        if ($value === 'no-value') {
             return $builder->whereHas($relation, function ($q) use ($field) {
                 $q->whereNotNull($field);
             });
