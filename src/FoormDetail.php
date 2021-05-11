@@ -405,10 +405,10 @@ class FoormDetail extends Foorm
         $notFoundPks = array_diff($currentPks, $foundPks);
 
         foreach ($notFoundPks as $pkToDelete) {
-            $this->performCallbacksSaveRelatedOperation($hasManyKey, 'beforeDeleteCallbackMethods', $hasManyModel, $inputArray);
+            $this->performCallbacksSaveRelatedOperation($hasManyKey, 'beforeDeleteCallbackMethods', $hasManyModel);
             $hasManyModelName::destroy($pkToDelete);
             //Questo non so se ha senso.
-            $this->performCallbacksSaveRelatedOperation($hasManyKey, 'afterDeleteCallbackMethods', $hasManyModel, $inputArray);
+            $this->performCallbacksSaveRelatedOperation($hasManyKey, 'afterDeleteCallbackMethods', $hasManyModel);
             break;
         }
 
@@ -472,7 +472,7 @@ class FoormDetail extends Foorm
     }
 
     protected
-    function performCallbacksSaveRelatedOperation($relationKey, $callbacksType, $relationModel, $inputArray)
+    function performCallbacksSaveRelatedOperation($relationKey, $callbacksType, $relationModel, $inputArray = [])
     {
 
         $callbacks = $this->getRelationConfig($relationKey, $callbacksType, []);

@@ -11,6 +11,8 @@ class Delete extends FoormAction
 
     protected $modelToDelete;
 
+    protected $relationsToDelete = [];
+
     protected function init() {
 
 
@@ -19,6 +21,9 @@ class Delete extends FoormAction
         } else {
             $this->modelToDelete = $this->model->find(Arr::get($this->input,'id'));
         }
+
+        $this->relationsToDelete = Arr::get($this->config,'relations_to_delete',[]);
+
     }
 
 
@@ -51,16 +56,31 @@ class Delete extends FoormAction
 
     protected function deleteRelations() {
 
-        foreach (Arr::get($this->config,'relations',[]) as $relationName) {
-            $this->modelToDelete->$relationName()->delete();
+        $hasManies = $this->getFoorm()->getHasManies();
+        $belongsTos = $this->getFoorm()->getBelongsTos();
+
+        foreach (Arr::get($this->getFoorm()->getConfig(),'relations',[]) as $relationName => $relationValues) {
+
+            if (!in_array($relationName,$this->relationsToDelete)) {
+                continue;
+            }
+
+            if (in_array($relationName,array_keys($hasManies))) {
+                foreach ($this->modelToDelete->$relationName as $relationModelToDelete) {
+                    $relationModelToDelete->delete();
+                }
+            }
+
+            if (in_array($relationName,array_keys($belongsTos))) {
+                $this->modelToDelete->$relationName->delete();
+            }
+
         }
 
     }
 
     protected function deleteModel() {
-
         $this->modelToDelete->destroy($this->modelToDelete->getKey());
-
     }
 
 
