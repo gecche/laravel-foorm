@@ -409,7 +409,6 @@ class FoormDetail extends Foorm
             $hasManyModelName::destroy($pkToDelete);
             //Questo non so se ha senso.
             $this->performCallbacksSaveRelatedOperation($hasManyKey, 'afterDeleteCallbackMethods', $hasManyModel);
-            break;
         }
 
 
