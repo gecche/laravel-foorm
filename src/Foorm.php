@@ -394,10 +394,12 @@ abstract class Foorm
             $relationAsOptions = Arr::get($relationConfig, 'as_options');
             if (is_array($relationAsOptions)) {
                 $optionField = Arr::get($relationAsOptions, 'field', 'id');
+                $nullOption = Arr::get($relationAsOptions, 'nulloption', true);
                 $this->relationsAsOptions[$relationName] = $optionField;
                 $asOptionsFields = [
                     $optionField => [
                         'options' => Arr::get($relationAsOptions, 'options', 'relation:' . $relationName),
+                        'nulloption' => $nullOption,
                     ],
                 ];
                 $relationConfig['fields'] = $asOptionsFields;
