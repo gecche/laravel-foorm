@@ -379,7 +379,14 @@ trait HasFoormHelpers
 
     protected function getDBDriver() {
 
-        $dbConnectionData = Config::get('database.connections.'.$this->getConnectionName(),[]);
+        $dbConnectionName = $this->getConnectionName();
+
+        if (is_null($dbConnectionName)) {
+            $dbConnectionName = $this->getConnection()->getName();
+        }
+
+        $dbConnectionData = Config::get('database.connections.'.$dbConnectionName,[]);
+
 
         return Arr::get($dbConnectionData, 'driver');
 
