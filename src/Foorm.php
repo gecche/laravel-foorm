@@ -2,15 +2,9 @@
 
 namespace Gecche\Foorm;
 
-use Gecche\DBHelper\Facades\DBHelper;
 use Gecche\Foorm\Contracts\FoormBreezeInterface;
-use Gecche\Foorm\Contracts\ListBuilder;
 use Gecche\Foorm\Breeze\Breeze;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -71,11 +65,6 @@ abstract class Foorm
      */
     protected $formMetadata = null;
 
-    /**
-     * @var DBHelper
-     */
-    protected $dbHelper;
-
     protected $dependentForms = null;
 
     /**
@@ -93,9 +82,6 @@ abstract class Foorm
         $this->config = $config;
 
         $this->input = $this->filterPredefinedValuesFromInput($this->input);
-
-        $this->dbHelper = DBHelper::helper($this->model->getConnectionName());
-
 
         $this->prepareRelationsData();
 

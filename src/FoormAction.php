@@ -2,7 +2,6 @@
 
 namespace Gecche\Foorm;
 
-use Gecche\DBHelper\Facades\DBHelper;
 use Gecche\Foorm\Contracts\ListBuilder;
 use Gecche\Breeze\Breeze;
 use Illuminate\Database\Eloquent\Builder;

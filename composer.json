@@ -11,7 +11,6 @@
     ],
     "require": {
         "laravel/framework": "^6.0",
-        "gecche/laravel-dbhelper": "2.0.*",
         "gecche/laravel-breeze": "2.0.*"
     },
     "autoload": {
