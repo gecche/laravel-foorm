@@ -2,6 +2,8 @@
 
 namespace Gecche\Foorm\Breeze\Concerns;
 
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Arr;
@@ -351,7 +353,37 @@ trait HasFoormHelpers
 
 
 
+    /*
+     * LIST ENUM VALUES
+     */
 
+    public function listEnumValues($column)
+    {
+        $table = $this->getTable();
+        switch ($this->getDBDriver()) {
+            case 'mysql':
+                $type = DB::select(DB::raw("SHOW COLUMNS FROM $table WHERE Field = '$column'"))[0]->Type;
+                preg_match('/^enum\((.*)\)$/', $type, $matches);
+                $enum = array();
+                foreach (explode(',', $matches[1]) as $value) {
+                    $v = trim($value, "'");
+                    //$enum = Arr::add($enum, $v, $v); //QUESTO FA CASINO SE LE LABEL SONO COL PUNTO
+                    $enum[$v] = $v;
+                }
+                return $enum;
+            default:
+                return [];
+        }
+    }
+
+
+    protected function getDBDriver() {
+
+        $dbConnectionData = Config::get('database.connections.'.$this->getConnectionName(),[]);
+
+        return Arr::get($dbConnectionData, 'driver');
+
+    }
 
     /*
      * DA RIVEDERE

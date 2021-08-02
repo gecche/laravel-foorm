@@ -568,7 +568,7 @@ abstract class Foorm
                 ];
             case 'dboptions':
                 if (is_null($relationName)) {
-                    return $this->dbHelper->listEnumValues($fieldKey, $this->getModel()->getTable());
+                    return $this->getModel()->listEnumValues($fieldKey);
                 }
                 $relationModelName = Arr::get($relationMetadata, 'modelName');
                 if (!$relationModelName) {
@@ -576,7 +576,7 @@ abstract class Foorm
                 }
                 $relationModel = new $relationModelName;
                 $relationFieldKey = Arr::get(explode("|", $fieldKey), 1, $fieldKey);
-                return $this->dbHelper->listEnumValues($relationFieldKey, $relationModel->getTable());
+                return $relationModel->listEnumValues($relationFieldKey);
 
             case 'method':
 
