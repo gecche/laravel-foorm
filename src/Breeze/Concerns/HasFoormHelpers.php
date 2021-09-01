@@ -2,6 +2,7 @@
 
 namespace Gecche\Foorm\Breeze\Concerns;
 
+use Coduo\PHPHumanizer\StringHumanizer;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
@@ -369,7 +370,7 @@ trait HasFoormHelpers
                 foreach (explode(',', $matches[1]) as $value) {
                     $v = trim($value, "'");
                     //$enum = Arr::add($enum, $v, $v); //QUESTO FA CASINO SE LE LABEL SONO COL PUNTO
-                    $enum[$v] = $formatFunc ? with($v,$formatFunc) : $v;
+                    $enum[$v] = $formatFunc ? with($v,$formatFunc) : ucfirst(StringHumanizer::humanize($v,false));
                 }
                 return $enum;
             default:
