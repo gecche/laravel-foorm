@@ -120,7 +120,8 @@ abstract class Foorm
         foreach (array_keys($relations) as $relation) {
 
 
-            $relationFields = array_key_append(Arr::get($config['relations'][$relation], 'fields', []), $relation . '|', false);
+
+            $relationFields = array_key_append(Arr::get($relations[$relation], 'fields', []), $relation . '|', false);
             $this->flatFields = array_merge(
                 array_fill_keys(array_keys($relationFields), 'relationfield'), $this->flatFields
             );
@@ -384,7 +385,7 @@ abstract class Foorm
                 $this->relationsAsOptions[$relationName] = $optionField;
                 $asOptionsFields = [
                     $optionField => [
-                        'options' => Arr::get($relationAsOptions, 'options', 'relation:' . $relationName),
+                        'options' => Arr::get($relationAsOptions, 'options', 'relation_as_options:' . $relationName),
                         'nulloption' => $nullOption,
                     ],
                 ];
@@ -571,6 +572,8 @@ abstract class Foorm
                 $methodName = 'createOptions' . Str::studly($fieldSanitized);
                 return $this->$methodName($fieldValue, $defaultOptionsValues, $relationName, $relationMetadata);
             case 'relation':
+            case 'relation_as_options':
+
 
                 Log::info(print_r($this->getModelName(), true));
 
@@ -599,7 +602,9 @@ abstract class Foorm
                 }
 
                 $optionsRelationModel = new $optionsRelationModelName;
-                $options = $this->getForSelectList($optionsRelationName, $optionsRelationModel);
+                if ($optionType == 'relation') {
+                    $options = $this->getForSelectList($optionsRelationName, $optionsRelationModel);
+                }
 
                 return $options;
             case 'self':
@@ -619,6 +624,12 @@ abstract class Foorm
         return $relationModel->getForSelectList(null, null, [], null, null);
     }
 
+    protected function getForSelectListAsOptions($relationName, $relationModel, $fieldKey)
+    {
+        $options = collect($relationModel->getForSelectList(null, [$fieldKey], [], null, null))->pluck($fieldKey,$fieldKey)->all();
+
+        return $options;
+    }
 
     public function createOptionsOrder($fieldKey, $fieldValue)
     {
