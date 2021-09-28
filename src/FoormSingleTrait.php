@@ -37,7 +37,7 @@ trait FoormSingleTrait
 
         foreach ($this->relationsAsOptions as $relation => $field) {
             if (is_array($this->formData[$relation])) {
-                $this->formData[$relation] = Arr::pluck($this->formData[$relation], $field);
+                $this->formData[$relation] = array_values($this->formData[$relation]);
             }
         }
 

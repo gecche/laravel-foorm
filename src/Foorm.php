@@ -602,9 +602,12 @@ abstract class Foorm
                 }
 
                 $optionsRelationModel = new $optionsRelationModelName;
-                if ($optionType == 'relation') {
-                    $options = $this->getForSelectList($optionsRelationName, $optionsRelationModel);
-                }
+                $options = $this->getForSelectList($optionsRelationName, $optionsRelationModel);
+//                if ($optionType == 'relation') {
+//                    $options = $this->getForSelectList($optionsRelationName, $optionsRelationModel);
+//                } else {
+//                    $options = $this->getForSelectListAsOptions($optionsRelationName, $optionsRelationModel, $fieldKey);
+//                }
 
                 return $options;
             case 'self':
