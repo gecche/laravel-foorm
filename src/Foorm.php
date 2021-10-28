@@ -113,7 +113,8 @@ abstract class Foorm
     {
         $config = $this->getConfig();
         $this->flatFields = array_fill_keys(array_keys(Arr::get($config, 'fields', [])), 'field');
-        $relations = array_fill_keys(array_keys(Arr::get($config, 'relations', [])), 'relation');
+        $configRelations = Arr::get($config, 'relations', []);
+        $relations = array_fill_keys(array_keys($configRelations), 'relation');
         $this->flatFields = array_merge($this->flatFields, $relations);
 
 
@@ -121,7 +122,7 @@ abstract class Foorm
 
 
 
-            $relationFields = array_key_append(Arr::get($relations[$relation], 'fields', []), $relation . '|', false);
+            $relationFields = array_key_append(Arr::get($configRelations[$relation], 'fields', []), $relation . '|', false);
             $this->flatFields = array_merge(
                 array_fill_keys(array_keys($relationFields), 'relationfield'), $this->flatFields
             );
