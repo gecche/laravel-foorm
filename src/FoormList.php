@@ -350,23 +350,27 @@ class FoormList extends Foorm
 
     protected function filterFieldsFromConfig()
     {
-        $configFields = array_keys(Arr::get($this->config,'fields',[]));
+        $configFields = array_keys(Arr::get($this->config, 'fields', []));
+        $configAppends = Arr::get($this->config, 'appends', []);
 
         $hasManies = array_keys($this->getHasManies());
         $belongsTos = array_keys($this->getBelongsTos());
-        $relations = Arr::get($this->config,'relations',[]);
+        $relations = Arr::get($this->config, 'relations', []);
 
         $relationsConfigFields = [];
+//        $relationsConfigAppends = [];
         foreach ($relations as $relationName => $relationValue) {
 
             $configFields[] = $relationName;
-            $relationsConfigFields[$relationName] = Arr::get($relationValue,'fields',[]);
+            $relationsConfigFields[$relationName] = Arr::get($relationValue, 'fields', []);
+//            $relationsConfigAppends[$relationName] = Arr::get($relationValue, 'appends', []);
         }
 
         $collection = $this->formBuilder->getCollection();
 
 
-        $newCollection = $this->filterCollectionStandard($collection, $configFields, $hasManies, $belongsTos,
+        $newCollection = $this->filterCollectionStandard($collection, $configFields, $configAppends,
+            $hasManies, $belongsTos,
             $relationsConfigFields, $this->relations);
 //        echo "<pre>";
 //        print_r($collection->toArray());
@@ -381,13 +385,16 @@ class FoormList extends Foorm
     protected function filterCollectionStandard(
         $collection,
         $configFields,
+        $configAppends,
         $hasManies,
         $belongsTos,
         $relationsConfigFields,
         $relationsMetadata = []
-    ) {
+    )
+    {
         return $collection->map(function ($model) use (
             $configFields,
+            $configAppends,
             $hasManies,
             $belongsTos,
             $relationsConfigFields,
@@ -395,7 +402,12 @@ class FoormList extends Foorm
         ) {
 
 
-            $arrayFiltered = array_intersect_key($model->toArray(),array_flip($configFields));
+            foreach ($configAppends as $appendField) {
+                $model->append($appendField);
+            };
+
+
+            $arrayFiltered = array_intersect_key($model->toArray(), array_flip($configFields));
 
             foreach ($belongsTos as $relation) {
                 $relationArray = is_array($arrayFiltered[$relation]) ? array_intersect_key($arrayFiltered[$relation],
@@ -405,25 +417,26 @@ class FoormList extends Foorm
 
             foreach ($hasManies as $relation) {
 
-                $relationType = Arr::get(Arr::get($relationsMetadata, $relation,[]),0);
+                $relationType = Arr::get(Arr::get($relationsMetadata, $relation, []), 0);
 
                 switch ($relationType) {
 
                     case Breeze::HAS_ONE:
                         $relationArray = is_array($arrayFiltered[$relation]) ? array_intersect_key($arrayFiltered[$relation],
                             $relationsConfigFields[$relation]) : [];
+
                         $arrayFiltered[$relation] = $relationArray;
                         break;
 
                     default:
 
-                foreach (Arr::get($arrayFiltered,$relation,[]) as $hasManyArrayKey => $hasManyArray) {
-                    $relationArray = array_intersect_key($hasManyArray,$relationsConfigFields[$relation]);
-                    $arrayFiltered[$relation][$hasManyArrayKey] = $relationArray;
+                        foreach (Arr::get($arrayFiltered, $relation, []) as $hasManyArrayKey => $hasManyArray) {
+                            $relationArray = array_intersect_key($hasManyArray, $relationsConfigFields[$relation]);
+                            $arrayFiltered[$relation][$hasManyArrayKey] = $relationArray;
 
-                }
+                        }
                         break;
-            }
+                }
 
             }
 

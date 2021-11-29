@@ -57,6 +57,10 @@ trait FoormSingleTrait
 
         }
 
+        foreach (Arr::get($this->config, 'appends', []) as $appendField) {
+            $this->model->append($appendField);
+        };
+
         $modelData = $this->model->toArray();
 
 
