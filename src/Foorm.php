@@ -615,6 +615,17 @@ abstract class Foorm
 
                 return $this->getForSelectList($this->getModelName(), $this->getModel());
 
+            case 'model':
+
+                $optionsModelValue = explode(':', $options);
+                $optionsModelName = $optionsModelValue[1];
+
+                $modelsNamespace = Arr::get($this->config,'models_namespace');
+                $optionsModelName = $modelsNamespace . "\\" . $optionsModelName;
+                $optionsModel = new ($optionsModelName);
+                $options = $optionsModel->getForSelectList(null, null, [], null, null);
+
+                return $options;
             default:
                 return [];
 
