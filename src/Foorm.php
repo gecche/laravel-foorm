@@ -622,7 +622,7 @@ abstract class Foorm
 
                 $modelsNamespace = Arr::get($this->config,'models_namespace');
                 $optionsModelName = $modelsNamespace . "\\" . $optionsModelName;
-                $optionsModel = new ($optionsModelName);
+                $optionsModel = new $optionsModelName();
                 $options = $optionsModel->getForSelectList(null, null, [], null, null);
 
                 return $options;
