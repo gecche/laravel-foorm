@@ -3,6 +3,7 @@
 namespace Gecche\Foorm;
 
 
+use Gecche\Cupparis\App\Breeze\Breeze;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -41,8 +42,8 @@ class FoormList extends Foorm
     protected $customFuncs = [];
 
 
-
-    public function setCustomFunc($type, \Closure $func) {
+    public function setCustomFunc($type, \Closure $func)
+    {
         $this->customFuncs[$type] = $func;
     }
 
@@ -144,7 +145,8 @@ class FoormList extends Foorm
             $relationModelName = $relationData['related'];
             $relationModel = new $relationModelName;
             $table = Arr::get($constraintArray, 'table', $relationModel->getTable());
-            $db = Arr::get($constraintArray, 'db',config('database.connections.' . $relationModel->getConnectionName() . '.database'));
+            $db = Arr::get($constraintArray, 'db',
+                config('database.connections.' . $relationModel->getConnectionName() . '.database'));
 
         } else {
             $table = Arr::get($constraintArray, 'table', $this->model->getTable());
@@ -157,15 +159,14 @@ class FoormList extends Foorm
         $dbField .= $field;
 
         if ($isRelation) {
-            return $this->formBuilder = $this->buildConstraintRelation($relation, $this->formBuilder, $dbField, $value, $op, $params);
+            return $this->formBuilder = $this->buildConstraintRelation($relation, $this->formBuilder, $dbField, $value,
+                $op, $params);
 
         }
 
         return $this->formBuilder = $this->buildConstraint($this->formBuilder, $dbField, $value, $op, $params);
 
     }
-
-
 
 
     protected function applySearchFilters()
@@ -177,7 +178,8 @@ class FoormList extends Foorm
         }
     }
 
-    protected function buildSearchFilters() {
+    protected function buildSearchFilters()
+    {
 
         $inputSearchFilters = Arr::get($this->input, 'search_filters', []);
 
@@ -191,7 +193,8 @@ class FoormList extends Foorm
 
     }
 
-    protected function buildSearchFiltersFromDependencies($inputSearchFilters,$searchForm) {
+    protected function buildSearchFiltersFromDependencies($inputSearchFilters, $searchForm)
+    {
 
         $searchFilters = [];
 
@@ -200,7 +203,7 @@ class FoormList extends Foorm
         foreach (Arr::get($searchConfig,'fields',[]) as $searchFieldName => $searchFieldConfig) {
             if (array_key_exists($searchFieldName,$inputSearchFilters)) {
                 $searchFilters[] = [
-                    'field' => $searchFieldName,
+                    'field' => Arr::get($searchFieldConfig, 'field', $searchFieldName),
                     'op' => Arr::get($searchFieldConfig, 'operator', '='),
                     'value' => $inputSearchFilters[$searchFieldName]['value']
                 ];
@@ -301,7 +304,8 @@ class FoormList extends Foorm
 
     }
 
-    public function getDataFromBuilder($params = []) {
+    public function getDataFromBuilder($params = [])
+    {
 
 
         if (Arr::get($this->customFuncs,'transformToData') instanceof \Closure) {
@@ -326,7 +330,8 @@ class FoormList extends Foorm
 
     }
 
-    public function initFormBuilder() {
+    public function initFormBuilder()
+    {
         $this->formBuilder = null;
     }
 
@@ -343,24 +348,30 @@ class FoormList extends Foorm
         return $arrayData;
     }
 
-    protected function filterFieldsFromConfig() {
-        $configFields = array_keys(Arr::get($this->config,'fields',[]));
+    protected function filterFieldsFromConfig()
+    {
+        $configFields = array_keys(Arr::get($this->config, 'fields', []));
+        $configAppends = Arr::get($this->config, 'appends', []);
 
         $hasManies = array_keys($this->getHasManies());
         $belongsTos = array_keys($this->getBelongsTos());
-        $relations = Arr::get($this->config,'relations',[]);
+        $relations = Arr::get($this->config, 'relations', []);
 
         $relationsConfigFields = [];
+//        $relationsConfigAppends = [];
         foreach ($relations as $relationName => $relationValue) {
 
             $configFields[] = $relationName;
-            $relationsConfigFields[$relationName] = Arr::get($relationValue,'fields',[]);
+            $relationsConfigFields[$relationName] = Arr::get($relationValue, 'fields', []);
+//            $relationsConfigAppends[$relationName] = Arr::get($relationValue, 'appends', []);
         }
 
         $collection = $this->formBuilder->getCollection();
 
 
-        $newCollection = $this->filterCollectionStandard($collection,$configFields,$hasManies,$belongsTos,$relationsConfigFields);
+        $newCollection = $this->filterCollectionStandard($collection, $configFields, $configAppends,
+            $hasManies, $belongsTos,
+            $relationsConfigFields, $this->relations);
 //        echo "<pre>";
 //        print_r($collection->toArray());
 //        echo "</pre>";
@@ -371,27 +382,63 @@ class FoormList extends Foorm
     }
 
 
-    protected function filterCollectionStandard($collection,$configFields,$hasManies,$belongsTos,$relationsConfigFields) {
-        return $collection->map(function ($model) use ($configFields,$hasManies,$belongsTos,$relationsConfigFields) {
+    protected function filterCollectionStandard(
+        $collection,
+        $configFields,
+        $configAppends,
+        $hasManies,
+        $belongsTos,
+        $relationsConfigFields,
+        $relationsMetadata = []
+    )
+    {
+        return $collection->map(function ($model) use (
+            $configFields,
+            $configAppends,
+            $hasManies,
+            $belongsTos,
+            $relationsConfigFields,
+            $relationsMetadata
+        ) {
 
 
+            foreach ($configAppends as $appendField) {
+                $model->append($appendField);
+            };
 
-            $arrayFiltered = array_intersect_key($model->toArray(),array_flip($configFields));
+
+            $arrayFiltered = array_intersect_key($model->toArray(), array_flip($configFields));
 
             foreach ($belongsTos as $relation) {
-                $relationArray = is_array($arrayFiltered[$relation]) ? array_intersect_key($arrayFiltered[$relation],$relationsConfigFields[$relation]) : [];
+                $relationArray = is_array($arrayFiltered[$relation]) ? array_intersect_key($arrayFiltered[$relation],
+                    $relationsConfigFields[$relation]) : [];
                 $arrayFiltered[$relation] = $relationArray;
             }
 
             foreach ($hasManies as $relation) {
 
-                foreach (Arr::get($arrayFiltered,$relation,[]) as $hasManyArrayKey => $hasManyArray) {
-                    $relationArray = array_intersect_key($hasManyArray,$relationsConfigFields[$relation]);
-                    $arrayFiltered[$relation][$hasManyArrayKey] = $relationArray;
+                $relationType = Arr::get(Arr::get($relationsMetadata, $relation, []), 0);
 
+                switch ($relationType) {
+
+                    case Breeze::HAS_ONE:
+                        $relationArray = is_array($arrayFiltered[$relation]) ? array_intersect_key($arrayFiltered[$relation],
+                            $relationsConfigFields[$relation]) : [];
+
+                        $arrayFiltered[$relation] = $relationArray;
+                        break;
+
+                    default:
+
+                        foreach (Arr::get($arrayFiltered, $relation, []) as $hasManyArrayKey => $hasManyArray) {
+                            $relationArray = array_intersect_key($hasManyArray, $relationsConfigFields[$relation]);
+                            $arrayFiltered[$relation][$hasManyArrayKey] = $relationArray;
+
+                        }
+                        break;
                 }
-            }
 
+            }
 
 
             return $arrayFiltered;
@@ -438,7 +485,6 @@ class FoormList extends Foorm
     }
 
 
-
     public function getFormBuilder()
     {
         if (is_null($this->formBuilder)) {
@@ -449,7 +495,8 @@ class FoormList extends Foorm
     }
 
 
-    protected function setAggregatesBuilder() {
+    protected function setAggregatesBuilder()
+    {
         $this->formAggregatesBuilder = $this->cloneFormBuilder();
     }
 
@@ -469,7 +516,6 @@ class FoormList extends Foorm
     }
 
 
-
     public function setFormBuilder()
     {
 
@@ -481,7 +527,8 @@ class FoormList extends Foorm
 
     }
 
-    protected function setFormMetadataOrder() {
+    protected function setFormMetadataOrder()
+    {
         $orderParams = Arr::get($this->input, 'order_params', []);
 
         $orderField = Arr::get($orderParams,'field', false);

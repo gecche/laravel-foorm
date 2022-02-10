@@ -62,8 +62,15 @@ trait ConstraintBuilderTrait
             case 'Like':
                 return $builder->where($field, 'LIKE', '%' . $value . '%');
             case 'Date':
-                return $builder->where($field, '>=', $value . ' 00:00:00')
-                    ->where($field, '<=', $value . ' 23:59:59');
+                return $builder->whereDate($field, '=', $value);
+            case 'DateLte':
+                return $builder->whereDate($field, '<=', $value);
+            case 'DateLt':
+                return $builder->whereDate($field, '<', $value);
+            case 'DateGte':
+                return $builder->whereDate($field, '>=', $value);
+            case 'DateGt':
+                return $builder->whereDate($field, '>', $value);
             case 'IsNull':
                 return $builder->whereNull($field);
             case 'IsNotNull':
@@ -247,8 +254,23 @@ trait ConstraintBuilderTrait
                 });
             case 'Date':
                 return $builder->whereHas($relation, function ($q) use ($field, $value) {
-                    $q->where($field, '>=', $value . ' 00:00:00')
-                        ->where($field, '<=', $value . ' 23:59:59');
+                    $q->whereDate($field, '=', $value);
+                });
+            case 'DateLte':
+                return $builder->whereHas($relation, function ($q) use ($field, $value) {
+                    $q->whereDate($field, '<=', $value);
+                });
+            case 'DateLt':
+                return $builder->whereHas($relation, function ($q) use ($field, $value) {
+                    $q->whereDate($field, '<', $value);
+                });
+            case 'DateGte':
+                return $builder->whereHas($relation, function ($q) use ($field, $value) {
+                    $q->whereDate($field, '>=', $value);
+                });
+            case 'DateGt':
+                return $builder->whereHas($relation, function ($q) use ($field, $value) {
+                    $q->whereDate($field, '>', $value);
                 });
             case 'IsNull':
                 return $builder->whereHas($relation, function ($q) use ($field) {

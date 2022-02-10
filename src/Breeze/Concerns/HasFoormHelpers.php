@@ -2,11 +2,13 @@
 
 namespace Gecche\Foorm\Breeze\Concerns;
 
+use Coduo\PHPHumanizer\StringHumanizer;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 
 trait HasFoormHelpers
 {
@@ -357,7 +359,7 @@ trait HasFoormHelpers
      * LIST ENUM VALUES
      */
 
-    public function listEnumValues($column)
+    public function listEnumValues($column, \Closure $formatFunc = null)
     {
         $table = $this->getTable();
         switch ($this->getDBDriver()) {
@@ -368,7 +370,7 @@ trait HasFoormHelpers
                 foreach (explode(',', $matches[1]) as $value) {
                     $v = trim($value, "'");
                     //$enum = Arr::add($enum, $v, $v); //QUESTO FA CASINO SE LE LABEL SONO COL PUNTO
-                    $enum[$v] = $v;
+                    $enum[$v] = $formatFunc ? with($v,$formatFunc) : ucfirst(StringHumanizer::humanize($v,false));
                 }
                 return $enum;
             default:

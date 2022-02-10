@@ -113,14 +113,16 @@ abstract class Foorm
     {
         $config = $this->getConfig();
         $this->flatFields = array_fill_keys(array_keys(Arr::get($config, 'fields', [])), 'field');
-        $relations = array_fill_keys(array_keys(Arr::get($config, 'relations', [])), 'relation');
+        $configRelations = Arr::get($config, 'relations', []);
+        $relations = array_fill_keys(array_keys($configRelations), 'relation');
         $this->flatFields = array_merge($this->flatFields, $relations);
 
 
         foreach (array_keys($relations) as $relation) {
 
 
-            $relationFields = array_key_append(Arr::get($config['relations'][$relation], 'fields', []), $relation . '|', false);
+
+            $relationFields = array_key_append(Arr::get($configRelations[$relation], 'fields', []), $relation . '|', false);
             $this->flatFields = array_merge(
                 array_fill_keys(array_keys($relationFields), 'relationfield'), $this->flatFields
             );
@@ -384,7 +386,7 @@ abstract class Foorm
                 $this->relationsAsOptions[$relationName] = $optionField;
                 $asOptionsFields = [
                     $optionField => [
-                        'options' => Arr::get($relationAsOptions, 'options', 'relation:' . $relationName),
+                        'options' => Arr::get($relationAsOptions, 'options', 'relation_as_options:' . $relationName),
                         'nulloption' => $nullOption,
                     ],
                 ];
@@ -435,6 +437,7 @@ abstract class Foorm
 
             switch ($relationFromModel[0]) {
                 case Breeze::BELONGS_TO:
+                case Breeze::BELONGS_TO_THROUGH:
 //                    $foreignKey = Arr::get($relations[$relationName], 'foreignKey', Str::snake($relationName) . '_id');
                     $relationConfig['relationName'] = $relationName;
                     break;
@@ -570,6 +573,8 @@ abstract class Foorm
                 $methodName = 'createOptions' . Str::studly($fieldSanitized);
                 return $this->$methodName($fieldValue, $defaultOptionsValues, $relationName, $relationMetadata);
             case 'relation':
+            case 'relation_as_options':
+
 
                 Log::info(print_r($this->getModelName(), true));
 
@@ -599,12 +604,28 @@ abstract class Foorm
 
                 $optionsRelationModel = new $optionsRelationModelName;
                 $options = $this->getForSelectList($optionsRelationName, $optionsRelationModel);
+//                if ($optionType == 'relation') {
+//                    $options = $this->getForSelectList($optionsRelationName, $optionsRelationModel);
+//                } else {
+//                    $options = $this->getForSelectListAsOptions($optionsRelationName, $optionsRelationModel, $fieldKey);
+//                }
 
                 return $options;
             case 'self':
 
                 return $this->getForSelectList($this->getModelName(), $this->getModel());
 
+            case 'model':
+
+                $optionsModelValue = explode(':', $options);
+                $optionsModelName = $optionsModelValue[1];
+
+                $modelsNamespace = Arr::get($this->config,'models_namespace');
+                $optionsModelName = $modelsNamespace . $optionsModelName;
+                $optionsModel = new $optionsModelName();
+                $options = $optionsModel->getForSelectList(null, null, [], null, null);
+
+                return $options;
             default:
                 return [];
 
@@ -618,6 +639,12 @@ abstract class Foorm
         return $relationModel->getForSelectList(null, null, [], null, null);
     }
 
+    protected function getForSelectListAsOptions($relationName, $relationModel, $fieldKey)
+    {
+        $options = collect($relationModel->getForSelectList(null, [$fieldKey], [], null, null))->pluck($fieldKey,$fieldKey)->all();
+
+        return $options;
+    }
 
     public function createOptionsOrder($fieldKey, $fieldValue)
     {

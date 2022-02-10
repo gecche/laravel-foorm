@@ -239,8 +239,9 @@ class FoormDetail extends Foorm
 
         foreach ($this->belongsTos as $belongsToKey => $belongsToValue) {
             $saveRelatedName = 'saveRelated' . Str::studly($belongsToKey);
+            $belongsToType = $belongsToValue['relationType'];
             $saveParams = $this->getRelationConfig($belongsToKey, 'saveParams', []);
-            $this->$saveRelatedName('BelongsTo', $belongsToKey, $belongsToValue, $input, $saveParams);
+            $this->$saveRelatedName($belongsToType, $belongsToKey, $belongsToValue, $input, $saveParams);
         }
 
 
@@ -469,6 +470,84 @@ class FoormDetail extends Foorm
         return $this->saveRelatedHasMany($hasManyKey, $hasManyValue, $hasManyInputs, $params);
 
     }
+
+//    public
+//    function saveRelatedBelongsToThrough($belongsToKey, $belongsToValue, $belongsToInputs, $params = array())
+//    {
+//
+//        $throughs = Arr::wrap($this->getRelationConfig($belongsToKey, 'through', []));
+//        $throughsKeys = Arr::wrap($this->getRelationConfig($belongsToKey, 'foreignKeyLookup', []));
+//
+//
+//        foreach ($throughs as $throughModelName) {
+//            $throughKey = Arr::get($throughsKeys,$throughModelName);
+//
+//        }
+//
+//
+//        $belongsToModelName = $belongsToValue['modelName'];
+//        $belongsToModel = new $belongsToModelName();
+//        $pkName = $belongsToModel->getKeyName();
+//
+//        //Faccio il sync con vuoto: cancello tutte le associazioni presenti
+//        $this->model->$belongsToKey()->sync([]);
+//
+//        //Se c'è un cmapo di ordinamento nella pivot
+//        $orderKey = $this->getRelationConfig($belongsToKey, 'orderKey');
+//        $pivotFields = $this->getRelationConfig($belongsToKey, 'pivotFields', []);
+//        $statusKey = $this->getRelationConfig($belongsToKey, 'statusKey', 'status');
+//
+//        foreach (Arr::get($belongsToInputs, $pkName, []) as $i => $pk) {
+//
+//            $pivotValues = [];
+//
+//            foreach ($pivotFields as $pivotField) {
+//
+//                //Il campo di ordinamento lo imposto io con l'ordine del form di interfaccia
+//                if ($pivotField == $orderKey) {
+//                    $pivotValues[$pivotField] = $i;
+//                    continue;
+//                }
+//
+//                $pivotValues[$pivotField] = Arr::get(Arr::get($belongsToInputs, $pivotField, []), $i);
+//
+//            }
+//
+//            //In caso di possibile aggiunta salvo il modello
+//            $status = null;
+//            if (array_key_exists($statusKey, $belongsToInputs)) {
+//                $status = Arr::get($belongsToInputs[$statusKey], $i);
+//            }
+//
+//            switch ($status) {
+//                case 'new':
+//
+//                    $inputArray = [];
+//                    foreach ($this->getRelationFieldsFromConfig($belongsToKey) as $key => $value) {
+//                        if (array_key_exists($key, $belongsToInputs) && array_key_exists($i, $belongsToInputs[$key])) {
+//                            $inputArray[$key] = $belongsToInputs[$key][$i];
+//                        }
+//                    }
+//
+//                    $belongsToModel = new $belongsToModelName($inputArray);
+//                    $this->performCallbacksSaveRelatedOperation($belongsToKey, 'beforeNewCallbackMethods', $belongsToModel, $inputArray);
+//                    $belongsToModel->save();
+//                    $this->performCallbacksSaveRelatedOperation($belongsToKey, 'afterNewCallbackMethods', $belongsToModel, $inputArray);
+//                    $pk = $belongsToModel->getKey();
+//                    break;
+//                default:
+//                    break;
+//            }
+//
+//
+//            //ESEGUO L'ATTACH CON I PIVOT VALUES
+//            $this->model->$belongsToKey()->attach($pk, $pivotValues);
+//
+//        }
+//
+//        $this->model->load($belongsToKey);
+//
+//    }
 
     protected
     function performCallbacksSaveRelatedOperation($relationKey, $callbacksType, $relationModel, $inputArray = [])
