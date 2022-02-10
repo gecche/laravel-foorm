@@ -9,10 +9,16 @@
             "email": "giacomo.terreni@gmail.com"
         }
     ],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "http://github.com/gecche/laravel-breeze"
+        }
+    ],
     "require": {
-        "laravel/framework": "^6.0",
-        "gecche/laravel-breeze": "2.0.*",
-        "coduo/php-humanizer": "^3.0"
+        "laravel/framework": "^9.0",
+        "gecche/laravel-breeze": "^5.0",
+        "coduo/php-humanizer": "^4.0"
     },
     "autoload": {
         "psr-4": {
