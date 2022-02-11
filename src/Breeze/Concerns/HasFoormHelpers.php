@@ -2,7 +2,6 @@
 
 namespace Gecche\Foorm\Breeze\Concerns;
 
-use Coduo\PHPHumanizer\StringHumanizer;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
@@ -370,7 +369,7 @@ trait HasFoormHelpers
                 foreach (explode(',', $matches[1]) as $value) {
                     $v = trim($value, "'");
                     //$enum = Arr::add($enum, $v, $v); //QUESTO FA CASINO SE LE LABEL SONO COL PUNTO
-                    $enum[$v] = $formatFunc ? with($v,$formatFunc) : ucfirst(StringHumanizer::humanize($v,false));
+                    $enum[$v] = $formatFunc ? with($v,$formatFunc) : $this->humanize($v));
                 }
                 return $enum;
             default:
@@ -378,6 +377,18 @@ trait HasFoormHelpers
         }
     }
 
+
+    protected function humanize($text) {
+        $separator = '_';
+
+        $forbiddenWords = ['id'];
+
+
+        $humanized = \trim(\strtolower((string) \preg_replace(['/([A-Z])/', \sprintf('/[%s\s]+/', $separator)], ['_$1', ' '], $text)));
+        $humanized = \trim(\str_replace($forbiddenWords, '', $humanized));
+
+        return ucfirst($humanized);
+    }
 
     protected function getDBDriver() {
 
