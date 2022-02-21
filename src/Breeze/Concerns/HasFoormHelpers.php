@@ -369,7 +369,7 @@ trait HasFoormHelpers
                 foreach (explode(',', $matches[1]) as $value) {
                     $v = trim($value, "'");
                     //$enum = Arr::add($enum, $v, $v); //QUESTO FA CASINO SE LE LABEL SONO COL PUNTO
-                    $enum[$v] = $formatFunc ? with($v,$formatFunc) : $this->humanize($v));
+                    $enum[$v] = $formatFunc ? with($v,$formatFunc) : $this->humanize($v);
                 }
                 return $enum;
             default:
