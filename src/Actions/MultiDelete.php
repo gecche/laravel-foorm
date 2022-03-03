@@ -12,6 +12,8 @@ class MultiDelete extends FoormAction
 {
     protected $modelKeys = [];
 
+    protected $relationsToDelete = [];
+
 
     protected function init() {
         $this->modelKeys = Arr::wrap(Arr::get($this->input,'ids',[]));
@@ -53,13 +55,19 @@ class MultiDelete extends FoormAction
 
     protected function deleteRelations() {
 
+        if (count($this->relationsToDelete) == 0) {
+            return;
+        }
+
         $modelName = $this->foorm->getModelName();
         foreach ($this->modelKeys as $modelKey) {
 
             $model = $modelName::find($modelKey);
 
             foreach ($this->foorm->getRelations() as $relationName => $relationConfig) {
-                $model->$relationName()->delete();
+                if (in_array($relationName,$this->relationsToDelete)) {
+                    $model->$relationName()->delete();
+                }
             }
 
         }
