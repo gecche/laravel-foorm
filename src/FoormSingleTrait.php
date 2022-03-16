@@ -44,18 +44,32 @@ trait FoormSingleTrait
     }
 
 
+    public function setModelRelationsData() {
+        $relationsKeys = array_keys($this->getRelations());
+        foreach ($relationsKeys as $relationKey) {
+
+            $method = 'setModelRelationData'.Str::studly($relationKey);
+            if (method_exists($this,$method)) {
+                $this->$method($relationKey);
+            } else {
+                $this->setModelRelationData($relationKey);
+            }
+
+        }
+
+    }
+
+    public function setModelRelationData($relationKey) {
+        $this->model->load($relationKey);
+    }
+
     public function setModelData()
     {
 
         $configData = $this->getAllFieldsAndDefaultsFromConfig();
 
-        $relationsKeys = array_keys($this->getRelations());
 
-        foreach ($relationsKeys as $relationKey) {
-
-            $this->model->load($relationKey);
-
-        }
+        $this->setModelRelationsData();
 
         foreach (Arr::get($this->config, 'appends', []) as $appendField) {
             $this->model->append($appendField);
