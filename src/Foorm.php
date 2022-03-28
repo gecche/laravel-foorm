@@ -83,12 +83,18 @@ abstract class Foorm
 
         $this->input = $this->filterPredefinedValuesFromInput($this->input);
 
+        $this->beforeDataPreparation();
+
         $this->prepareRelationsData();
 
         $this->prepareFoormInternalData();
 
         $this->init();
 
+    }
+
+    protected function beforeDataPreparation() {
+        return;
     }
 
     protected function init()
