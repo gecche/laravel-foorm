@@ -18,6 +18,7 @@ class FoormDetail extends Foorm
 
     protected $validator = null;
     protected $validationSettings = null; //rules, customMessages, customAttributes
+    protected $addedValidationSettings = null; //rules, customMessages, customAttributes
 
 
     public
@@ -34,12 +35,16 @@ class FoormDetail extends Foorm
         $this->validator = Validator::make($input, $rules, $customMessages, $customAttributes);
 
         if (!$this->validator->passes()) {
-            $errors = $this->validator->errors()->getMessages();
-            $errors = Arr::flatten($errors);
-            throw ValidationException::withMessages($errors);
+            $this->throwValidationErrors();
         }
 
         return true;
+    }
+
+    protected function throwValidationErrors() {
+        $errors = $this->validator->errors()->getMessages();
+        $errors = Arr::flatten($errors);
+        throw ValidationException::withMessages($errors);
     }
 
     public
@@ -47,6 +52,17 @@ class FoormDetail extends Foorm
     {
         $this->setValidationSettings($input, $rules);
         return $this->validationSettings;
+    }
+
+    protected
+    function finalizeValidationSettings() {
+        if (!is_array($this->addedValidationSettings)) {
+            return;
+        }
+        foreach (['rules','customMessages','customAttributes'] as $itemType) {
+            $addedItems = Arr::get($this->addedValidationSettings,$itemType,[]);
+            $this->validationSettings[$itemType] = array_merge($this->validationSettings[$itemType], $addedItems);
+        }
     }
 
     protected
@@ -106,7 +122,6 @@ class FoormDetail extends Foorm
         $this->validationSettings['customMessages'] = array_merge($this->validationSettings['customMessages'], $validationHasMany['customMessages']);
         $this->validationSettings['customAttributes'] = array_merge($this->validationSettings['customAttributes'], $validationHasMany['customAttributes']);
 
-
     }
 
 
@@ -122,6 +137,7 @@ class FoormDetail extends Foorm
         if (is_null($rules)) {
             if (is_null($this->validationSettings)) {
                 $this->buildValidationSettings();
+                $this->finalizeValidationSettings();
             }
             return;
         }
