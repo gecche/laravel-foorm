@@ -75,6 +75,12 @@ trait ConstraintBuilderTrait
                 return $builder->whereNull($field);
             case 'IsNotNull':
                 return $builder->whereNotNull($field);
+            case 'NullOrNotNull':
+                if (!$value) {
+                    return $builder->whereNull($field);
+                } else {
+                    return $builder->whereNotNull($field);
+                }
             case 'In':
             case 'NotIn':
                 if (empty($value)) {
@@ -280,6 +286,16 @@ trait ConstraintBuilderTrait
                 return $builder->whereHas($relation, function ($q) use ($field) {
                     $q->whereNull($field);
                 });
+            case 'NullOrNotNull':
+                if (!$value) {
+                    return $builder->whereHas($relation, function ($q) use ($field) {
+                        $q->whereNull($field);
+                    });
+                } else {
+                    return $builder->whereHas($relation, function ($q) use ($field) {
+                        $q->whereNotNull($field);
+                    });
+                }
             case 'In':
             case 'NotIn':
                 if (empty($value)) {
