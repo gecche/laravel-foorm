@@ -138,15 +138,19 @@ class FoormList extends Foorm
             $field = implode('.', $fieldExploded);
 
             $relationData = Arr::get($modelRelations, $relation, []);
-            if (!array_key_exists('related', $relationData)) {
+            $relationType = Arr::get($relationData,0);
+            if (!in_array($relationType,[Breeze::MORPH_TO]) &&
+                !array_key_exists('related', $relationData)) {
                 return $this->formBuilder;
             }
 
-            $relationModelName = $relationData['related'];
-            $relationModel = new $relationModelName;
-            $table = Arr::get($constraintArray, 'table', $relationModel->getTable());
-            $db = Arr::get($constraintArray, 'db',
-                config('database.connections.' . $relationModel->getConnectionName() . '.database'));
+            $relationModelName = Arr::get($relationData,'related');
+            if ($relationModelName) {
+                $relationModel = new $relationModelName;
+                $table = Arr::get($constraintArray, 'table', $relationModel->getTable());
+                $db = Arr::get($constraintArray, 'db',
+                    config('database.connections.' . $relationModel->getConnectionName() . '.database'));
+            }
 
         } else {
             $table = Arr::get($constraintArray, 'table', $this->model->getTable());
