@@ -444,6 +444,7 @@ abstract class Foorm
             switch ($relationFromModel[0]) {
                 case Breeze::BELONGS_TO:
                 case Breeze::BELONGS_TO_THROUGH:
+                case Breeze::MORPH_TO:
 //                    $foreignKey = Arr::get($relations[$relationName], 'foreignKey', Str::snake($relationName) . '_id');
                     $relationConfig['relationName'] = $relationName;
                     break;
@@ -453,6 +454,13 @@ abstract class Foorm
                     break;
             }
             $relationConfig['relationType'] = $relationFromModel[0];
+            if ($relationFromModel[0] == Breeze::MORPH_TO) {
+                $relationConfig['modelName'] = null;
+                $relationConfig['modelRelativeName'] = null;
+            } else {
+                $relationConfig['modelName'] = $relationFromModel['related'];
+                $relationConfig['modelRelativeName'] = trim_namespace($this->getModelsNamespace(), $relationFromModel['related']);
+            }
             $relationConfig['modelName'] = $relationFromModel['related'];
             $relationConfig['modelRelativeName'] = trim_namespace($this->getModelsNamespace(), $relationFromModel['related']);
 
