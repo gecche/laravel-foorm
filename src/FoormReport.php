@@ -78,8 +78,7 @@ class FoormReport extends Foorm
     public function finalizeData()
     {
 
-        $arrayData = $this->formBuilder->toArray();
-        return $arrayData;
+        $this->formData = $this->formBuilder->toArray();
 
     }
 
