@@ -80,4 +80,6 @@ return [
         'belongs_to' => 'standard', //standard, add, morphed
     ],
 
+    'basic_query_fieldname' => 'basic_query',
+
 ];

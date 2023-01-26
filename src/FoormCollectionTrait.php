@@ -21,6 +21,30 @@ trait FoormCollectionTrait
         }
     }
 
+    public function getBasicQueryFieldName()
+    {
+        return Arr::get($this->config, 'basic_query_field_name', 'basic_query');
+    }
+
+    protected function buildSearchFilterBasicQuery($builder, $op, $value, $params)
+    {
+        $value = $this->guessInputValue($value,'string');
+        if (is_null($value)) {
+            return $builder;
+        }
+
+        $fieldsForBasicQuery = Arr::wrap(Arr::get($this->config,'basic_query_fields',[$this->model->getKeyName()]));
+
+        $builder->where(function ($q) use ($fieldsForBasicQuery,$value) {
+            foreach ($fieldsForBasicQuery as $field) {
+                $q->orWhere($field,'LIKE','%'.$value.'%');
+            }
+        });
+
+        return $builder;
+
+    }
+
     protected function applyConstraint(array $constraintArray)
     {
 
@@ -34,7 +58,13 @@ trait FoormCollectionTrait
         $op = Arr::get($constraintArray, 'op', '=');
         $params = Arr::get($constraintArray, 'params', []);
 
-        $fieldSanitized = str_replace('|','_',$field);
+        $fieldSanitized = str_replace('|', '_', $field);
+
+        $basicQueryFieldName = $this->getBasicQueryFieldName();
+        if ($fieldSanitized == $basicQueryFieldName) {
+            return $this->buildSearchFilterBasicQuery($this->formBuilder, $op, $value, $params);
+        }
+
         $studlyField = Str::studly($fieldSanitized);
 
         $methodName = 'buildSearchFilterField' . $studlyField;
@@ -54,7 +84,7 @@ trait FoormCollectionTrait
         $table = null;
 
 
-        if (array_key_exists($field,$modelRelations)) {
+        if (array_key_exists($field, $modelRelations)) {
             return $this->formBuilder = $this->buildConstraint($this->formBuilder, $field, $value, $op, $params);
         }
 
@@ -65,13 +95,13 @@ trait FoormCollectionTrait
             $field = implode('.', $fieldExploded);
 
             $relationData = Arr::get($modelRelations, $relation, []);
-            $relationType = Arr::get($relationData,0);
-            if (!in_array($relationType,[Breeze::MORPH_TO]) &&
+            $relationType = Arr::get($relationData, 0);
+            if (!in_array($relationType, [Breeze::MORPH_TO]) &&
                 !array_key_exists('related', $relationData)) {
                 return $this->formBuilder;
             }
 
-            $relationModelName = Arr::get($relationData,'related');
+            $relationModelName = Arr::get($relationData, 'related');
             if ($relationModelName) {
                 $relationModel = new $relationModelName;
                 $table = Arr::get($constraintArray, 'table', $relationModel->getTable());
@@ -114,13 +144,13 @@ trait FoormCollectionTrait
 
         $inputSearchFilters = Arr::get($this->input, 'search_filters', []);
 
-        $dependentSearchForm = Arr::get($this->dependentForms,'search');
+        $dependentSearchForm = Arr::get($this->dependentForms, 'search');
 
         if (!$dependentSearchForm) {
             return $inputSearchFilters;
         }
 
-        return $this->buildSearchFiltersFromDependencies($inputSearchFilters,$dependentSearchForm);
+        return $this->buildSearchFiltersFromDependencies($inputSearchFilters, $dependentSearchForm);
 
     }
 
@@ -131,8 +161,8 @@ trait FoormCollectionTrait
 
         $searchConfig = $searchForm->getConfig();
 
-        foreach (Arr::get($searchConfig,'fields',[]) as $searchFieldName => $searchFieldConfig) {
-            if (array_key_exists($searchFieldName,$inputSearchFilters)) {
+        foreach (Arr::get($searchConfig, 'fields', []) as $searchFieldName => $searchFieldConfig) {
+            if (array_key_exists($searchFieldName, $inputSearchFilters)) {
                 $searchFilters[] = [
                     'field' => Arr::get($searchFieldConfig, 'field', $searchFieldName),
                     'op' => Arr::get($searchFieldConfig, 'operator', '='),
@@ -211,15 +241,14 @@ trait FoormCollectionTrait
     }
 
 
-
     protected function setFormMetadataOrder()
     {
         $orderParams = Arr::get($this->input, 'order_params', []);
 
-        $orderField = Arr::get($orderParams,'field', false);
+        $orderField = Arr::get($orderParams, 'field', false);
         if ($orderField !== false) {
             $this->formMetadata['order']['field'] = $orderField;
-            $this->formMetadata['order']['direction'] = Arr::get($orderParams,'direction', 'ASC');
+            $this->formMetadata['order']['direction'] = Arr::get($orderParams, 'direction', 'ASC');
         } else {
             $order = $this->model->getDefaultOrderColumns();
             $orderColumns = array_keys($order);
