@@ -161,7 +161,13 @@ trait FoormCollectionTrait
 
         $searchConfig = $searchForm->getConfig();
 
-        foreach (Arr::get($searchConfig, 'fields', []) as $searchFieldName => $searchFieldConfig) {
+        $searchConfigFields = Arr::get($searchConfig, 'fields', []);
+        $basicQueryFieldName = $this->getBasicQueryFieldName();
+        if ($basicQueryFieldName) {
+            $searchConfigFields[$basicQueryFieldName] = [];
+        }
+
+        foreach ($searchConfigFields as $searchFieldName => $searchFieldConfig) {
             if (array_key_exists($searchFieldName, $inputSearchFilters)) {
                 $searchFilters[] = [
                     'field' => Arr::get($searchFieldConfig, 'field', $searchFieldName),
