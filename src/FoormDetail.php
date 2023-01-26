@@ -246,6 +246,8 @@ class FoormDetail extends Foorm
             $modelName = $this->getModelName();
             $this->model = new $modelName;
         }
+
+        return $saved;
     }
 
 
