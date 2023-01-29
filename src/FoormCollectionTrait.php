@@ -37,7 +37,15 @@ trait FoormCollectionTrait
 
         $builder->where(function ($q) use ($fieldsForBasicQuery,$value) {
             foreach ($fieldsForBasicQuery as $field) {
-                $q->orWhere($field,'LIKE','%'.$value.'%');
+                list($dbField,$relation) = $this->getFieldAndRelationForConstraint($field);
+                if ($relation) {
+                    $q->whereHas($relation, function ($q2) use ($dbField, $value) {
+                        $q2->where($dbField, 'LIKE', '%' . $value . '%');
+                    });
+                } else {
+                    $q->orWhere($dbField,'LIKE','%'.$value.'%');
+
+                }
             }
         });
 
@@ -74,7 +82,20 @@ trait FoormCollectionTrait
             return $this->$methodName($this->formBuilder, $op, $value, $params);
         }
 
+        list($dbField,$relation) = $this->getFieldAndRelationForConstraint($field,$constraintArray);
 
+
+        if ($relation) {
+            return $this->formBuilder = $this->buildConstraintRelation($relation, $this->formBuilder, $dbField, $value,
+                $op, $params);
+
+        }
+
+        return $this->formBuilder = $this->buildConstraint($this->formBuilder, $dbField, $value, $op, $params);
+
+    }
+
+    protected function getFieldAndRelationForConstraint($field,$constraintArray = []) {
         $modelRelations = $this->model->getRelationsData();
 
         $relation = null;
@@ -85,7 +106,7 @@ trait FoormCollectionTrait
 
 
         if (array_key_exists($field, $modelRelations)) {
-            return $this->formBuilder = $this->buildConstraint($this->formBuilder, $field, $value, $op, $params);
+            return [$field,null];
         }
 
         if (count($fieldExploded) > 1) {
@@ -119,16 +140,8 @@ trait FoormCollectionTrait
         $dbField .= $table ? $table . '.' : '';
         $dbField .= $field;
 
-        if ($isRelation) {
-            return $this->formBuilder = $this->buildConstraintRelation($relation, $this->formBuilder, $dbField, $value,
-                $op, $params);
-
-        }
-
-        return $this->formBuilder = $this->buildConstraint($this->formBuilder, $dbField, $value, $op, $params);
-
+        return [$dbField,$relation];
     }
-
 
     protected function applySearchFilters()
     {
