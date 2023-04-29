@@ -39,7 +39,7 @@ trait FoormCollectionTrait
             foreach ($fieldsForBasicQuery as $field) {
                 list($dbField,$relation) = $this->getFieldAndRelationForConstraint($field);
                 if ($relation) {
-                    $q->whereHas($relation, function ($q2) use ($dbField, $value) {
+                    $q->orWhereHas($relation, function ($q2) use ($dbField, $value) {
                         $q2->where($dbField, 'LIKE', '%' . $value . '%');
                     });
                 } else {
