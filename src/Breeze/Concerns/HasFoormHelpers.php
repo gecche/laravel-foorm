@@ -363,7 +363,8 @@ trait HasFoormHelpers
         $table = $this->getTable();
         switch ($this->getDBDriver()) {
             case 'mysql':
-                $type = DB::select(DB::raw("SHOW COLUMNS FROM $table WHERE Field = '$column'"))[0]->Type;
+                $raw = DB::raw("SHOW COLUMNS FROM $table WHERE Field = '$column'")->getValue(DB::getQueryGrammar());
+                $type = DB::select($raw)[0]->Type;
                 preg_match('/^enum\((.*)\)$/', $type, $matches);
                 $enum = array();
                 foreach (explode(',', $matches[1]) as $value) {
