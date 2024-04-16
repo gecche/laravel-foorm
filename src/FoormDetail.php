@@ -279,9 +279,17 @@ class FoormDetail extends Foorm
     }
 
     protected function getHasManyInputs($hasManyKey,$input) {
-        $hasManyInputs = preg_grep_keys('/^' . $hasManyKey . '-/', $input);
-        $hasManyInputs = trim_keys($hasManyKey . '-', $hasManyInputs);
-        return $hasManyInputs;
+        switch ($this->submitProtocol) {
+            case 'form':
+                $hasManyInputs = preg_grep_keys('/^' . $hasManyKey . '-/', $input);
+                $hasManyInputs = trim_keys($hasManyKey . '-', $hasManyInputs);
+                return $hasManyInputs;
+            case 'json':
+                return Arr::get($input,$hasManyKey,[]);
+            default:
+                return [];
+
+        }
     }
 
     /*
@@ -365,6 +373,50 @@ class FoormDetail extends Foorm
     function saveRelatedHasMany($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
     {
 
+        switch ($this->submitProtocol) {
+            case 'form':
+                $this->saveRelatedHasManyFormProtocol($hasManyKey, $hasManyValue, $hasManyInputs, $params);
+                break;
+            case 'json':
+                $this->saveRelatedHasManyJsonProtocol($hasManyKey, $hasManyValue, $hasManyInputs, $params);
+                break;
+            default:
+                break;
+
+        }
+        $this->model->load($hasManyKey);
+
+
+    }
+
+    /*
+     * Salvataggio classico di has many con aggiunta/rimozione degli has many collegati al modello principale
+     */
+    protected
+    function saveRelatedHasManyJsonProtocol($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
+    {
+
+        $hasManyModelName = $hasManyValue['modelName'];
+        $hasManyModel = new $hasManyModelName();
+        $pkName = $hasManyModel->getKeyName();
+
+        $statusKey = $this->getRelationConfig($hasManyKey, 'statusKey', 'status');
+        $orderKey = $this->getRelationConfig($hasManyKey, 'orderKey');
+
+        foreach ($hasManyInputs as $hasManyInput) {
+            $pk = Arr::get($hasManyInput,$pkName);
+            $status = Arr::get($hasManyInput,$statusKey);
+
+        }
+
+    }
+    /*
+     * Salvataggio classico di has many con aggiunta/rimozione degli has many collegati al modello principale
+     */
+    protected
+    function saveRelatedHasManyFormProtocol($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
+    {
+
         $hasManyModelName = $hasManyValue['modelName'];
         $hasManyModel = new $hasManyModelName();
         $pkName = $hasManyModel->getKeyName();
@@ -431,10 +483,7 @@ class FoormDetail extends Foorm
         }
 
 
-        $this->model->load($hasManyKey);
-
     }
-
 
 //DA SISTEMARE E CAPIRE CHE CAVOLO ERA :)
 

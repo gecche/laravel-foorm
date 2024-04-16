@@ -67,6 +67,8 @@ abstract class Foorm
 
     protected $dependentForms = null;
 
+    protected $submitProtocol = null;
+
     /**
      * FormList constructor.
      * @param array $input
@@ -82,6 +84,8 @@ abstract class Foorm
         $this->config = $config;
 
         $this->input = $this->filterPredefinedValuesFromInput($this->input);
+
+        $this->submitProtocol = Arr::get($this->config,'submit_protocol','form');
 
         $this->beforeDataPreparation();
 
