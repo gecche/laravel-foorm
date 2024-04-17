@@ -279,9 +279,17 @@ class FoormDetail extends Foorm
     }
 
     protected function getHasManyInputs($hasManyKey,$input) {
-        $hasManyInputs = preg_grep_keys('/^' . $hasManyKey . '-/', $input);
-        $hasManyInputs = trim_keys($hasManyKey . '-', $hasManyInputs);
-        return $hasManyInputs;
+        switch ($this->submitProtocol) {
+            case 'form':
+                $hasManyInputs = preg_grep_keys('/^' . $hasManyKey . '-/', $input);
+                $hasManyInputs = trim_keys($hasManyKey . '-', $hasManyInputs);
+                return $hasManyInputs;
+            case 'json':
+                return Arr::get($input,$hasManyKey,[]);
+            default:
+                return [];
+
+        }
     }
 
     /*
@@ -292,6 +300,94 @@ class FoormDetail extends Foorm
 //CREDO SIA OK
     public
     function saveRelatedBelongsToMany($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
+    {
+
+        switch ($this->submitProtocol) {
+            case 'form':
+                $this->saveRelatedBelongsToManyFormProtocol($hasManyKey, $hasManyValue, $hasManyInputs, $params);
+                break;
+            case 'json':
+                $this->saveRelatedBelongsToManyJsonProtocol($hasManyKey, $hasManyValue, $hasManyInputs, $params);
+                break;
+            default:
+                break;
+
+        }
+
+        $this->model->load($hasManyKey);
+
+    }
+
+    public
+    function saveRelatedBelongsToManyJsonProtocol($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
+    {
+
+        $hasManyModelName = $hasManyValue['modelName'];
+        $hasManyModel = new $hasManyModelName();
+        $pkName = $hasManyModel->getKeyName();
+
+        //ATTENZIONE: NON Faccio il sync con vuoto: NON cancello tutte le associazioni presenti
+        //$this->model->$hasManyKey()->sync([]);
+
+        //Se c'è un cmapo di ordinamento nella pivot
+        $orderKey = $this->getRelationConfig($hasManyKey, 'orderKey');
+        $pivotFields = $this->getRelationConfig($hasManyKey, 'pivotFields', []);
+        $statusKey = $this->getRelationConfig($hasManyKey, 'statusKey', 'status');
+        $fieldsFromConfig = array_keys($this->getRelationFieldsFromConfig($hasManyKey));
+
+        foreach ($hasManyInputs as $position => $hasManyInput) {
+            $status = Arr::get($hasManyInput,$statusKey);
+            if (!in_array($status,['new','updated','deleted'])) {
+                continue;
+            }
+
+            $pk = Arr::get($hasManyInput,$pkName);
+            if ($status == 'deleted') {
+                $this->model->$hasManyKey()->detach($pk);
+                continue;
+            }
+
+            $inputArray = Arr::only($hasManyInput,$fieldsFromConfig);
+            $pivotValues = [];
+
+            foreach ($pivotFields as $pivotField) {
+
+                //Il campo di ordinamento lo imposto io con l'ordine del form di interfaccia
+                $pivotValues[$pivotField] = ($pivotField == $orderKey)
+                    ? $position
+                    : Arr::get($hasManyInput, $pivotField);
+            }
+
+
+            //In caso di possibile aggiunta salvo il modello
+
+            switch ($status) {
+                case 'new':
+                    $hasManyModel = new $hasManyModelName($inputArray);
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey, 'beforeNewCallbackMethods', $hasManyModel, $inputArray);
+                    $hasManyModel->save();
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey, 'afterNewCallbackMethods', $hasManyModel, $inputArray);
+                    $pk = $hasManyModel->getKey();
+                    break;
+                case 'updated':
+                    $hasManyModel = $hasManyModelName::find($pk);
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey, 'beforeUpdateCallbackMethods', $hasManyModel, $inputArray);
+                    $hasManyModel->update($inputArray);
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey, 'afterUpdateCallbackMethods', $hasManyModel, $inputArray);
+                    break;
+                default:
+                    break;
+            }
+
+
+            //ESEGUO L'ATTACH CON I PIVOT VALUES
+            $this->model->$hasManyKey()->attach($pk, $pivotValues);
+
+        }
+    }
+
+    public
+    function saveRelatedBelongsToManyFormProtocol($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
     {
 
         $hasManyModelName = $hasManyValue['modelName'];
@@ -357,12 +453,85 @@ class FoormDetail extends Foorm
         $this->model->load($hasManyKey);
 
     }
-
     /*
      * Salvataggio classico di has many con aggiunta/rimozione degli has many collegati al modello principale
      */
     public
     function saveRelatedHasMany($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
+    {
+
+        switch ($this->submitProtocol) {
+            case 'form':
+                $this->saveRelatedHasManyFormProtocol($hasManyKey, $hasManyValue, $hasManyInputs, $params);
+                break;
+            case 'json':
+                $this->saveRelatedHasManyJsonProtocol($hasManyKey, $hasManyValue, $hasManyInputs, $params);
+                break;
+            default:
+                break;
+
+        }
+        $this->model->load($hasManyKey);
+
+
+    }
+
+    /*
+     * Salvataggio classico di has many con aggiunta/rimozione degli has many collegati al modello principale
+     */
+    protected
+    function saveRelatedHasManyJsonProtocol($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
+    {
+
+        $hasManyModelName = $hasManyValue['modelName'];
+        $hasManyModel = new $hasManyModelName();
+        $pkName = $hasManyModel->getKeyName();
+
+        $statusKey = $this->getRelationConfig($hasManyKey, 'statusKey', 'status');
+        $orderKey = $this->getRelationConfig($hasManyKey, 'orderKey');
+        $fieldsFromConfig = array_keys($this->getRelationFieldsFromConfig($hasManyKey));
+
+        foreach ($hasManyInputs as $position => $hasManyInput) {
+            $status = Arr::get($hasManyInput,$statusKey);
+            if (!in_array($status,['new','updated','deleted'])) {
+                continue;
+            }
+
+            $pk = Arr::get($hasManyInput,$pkName);
+            $inputArray = Arr::only($hasManyInput,$fieldsFromConfig);
+            if ($orderKey) {
+                $inputArray[$orderKey] = $position;
+            }
+
+            switch ($status) {
+                case 'new':
+                    $hasManyModel = new $hasManyModelName($inputArray);
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey, 'beforeNewCallbackMethods', $hasManyModel, $inputArray);
+                    $this->model->$hasManyKey()->save($hasManyModel);
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey, 'afterNewCallbackMethods', $hasManyModel, $inputArray);
+                    break;
+                case 'updated':
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey, 'beforeUpdateCallbackMethods', $hasManyModel, $inputArray);
+                    $hasManyModel->update($inputArray);
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey, 'afterUpdateCallbackMethods', $hasManyModel, $inputArray);
+                    break;
+                case 'deleted':
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey, 'beforeDeleteCallbackMethods', $hasManyModel);
+                    $hasManyModelName::destroy($pk);
+                    //Questo non so se ha senso.
+                    $this->performCallbacksSaveRelatedOperation($hasManyKey, 'afterDeleteCallbackMethods', $hasManyModel);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+    }
+    /*
+     * Salvataggio classico di has many con aggiunta/rimozione degli has many collegati al modello principale
+     */
+    protected
+    function saveRelatedHasManyFormProtocol($hasManyKey, $hasManyValue, $hasManyInputs, $params = array())
     {
 
         $hasManyModelName = $hasManyValue['modelName'];
@@ -431,10 +600,7 @@ class FoormDetail extends Foorm
         }
 
 
-        $this->model->load($hasManyKey);
-
     }
-
 
 //DA SISTEMARE E CAPIRE CHE CAVOLO ERA :)
 
