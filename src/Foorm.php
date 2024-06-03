@@ -631,10 +631,23 @@ abstract class Foorm
                 $optionsModelValue = explode(':', $options);
                 $optionsModelName = $optionsModelValue[1];
 
-                $modelsNamespace = Arr::get($this->config,'models_namespace');
-                $optionsModelName = $modelsNamespace . $optionsModelName;
+                if (!Str::contains($optionsModelName,["\\"])) {
+                    $modelsNamespace = Arr::get($this->config, 'models_namespace');
+                    $optionsModelName = $modelsNamespace . $optionsModelName;
+                }
                 $optionsModel = new $optionsModelName();
                 $options = $optionsModel->getForSelectList(null, null, [], null, null);
+
+                return $options;
+            case 'enum':
+
+                $optionsEnumValue = explode(':', $options);
+                $optionsEnumName = $optionsEnumValue[1];
+                if (!Str::contains($optionsEnumName,["\\"])) {
+                    $optionsEnumName =
+                        Arr::get($this->config,'enumss_namespace',"App\\Enums") . $optionsEnumName;
+                }
+                $options = $optionsEnumName::options();
 
                 return $options;
             default:
