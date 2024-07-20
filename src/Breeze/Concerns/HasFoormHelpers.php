@@ -330,21 +330,22 @@ trait HasFoormHelpers
         $function = $this->completionItemFunction ?: function ($item) use ($labelColumns,$appends) {
             $filteredItem = [];
 
-            if (count($appends) > 0) {
-                $item->append($appends);
-            }
-            $item = $item->toArray();
-            $itemDotted = Arr::dot($item);
+            $labelColumns = array_unique(array_merge($labelColumns,$appends));
             foreach ($labelColumns as $column) {
 
                 $chunks = explode('|', $column);
-                if (count($chunks) > 1) {
-                    $relationField = implode('.',$chunks);
-                    $columnValue = Arr::get($itemDotted,$relationField);
-                } else {
-                    $columnValue = Arr::get($item,$column);
+                $nChunks = count($chunks);
+                $i = 0;
+                $objectToAppend = $item;
+                $nChunksRimaste = $nChunks;
+                while ($nChunksRimaste > 1) {
+                    $relation = $chunks[$i];
+                    $objectToAppend = $objectToAppend->$relation;
+                    $i++;
+                    $nChunksRimaste--;
                 }
-                $filteredItem[$column] = $columnValue;
+                $field = $chunks[$i];
+                $filteredItem[$column] = $objectToAppend->$field;
             }
 
             return $filteredItem;
