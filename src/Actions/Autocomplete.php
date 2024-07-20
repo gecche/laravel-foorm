@@ -61,13 +61,13 @@ class Autocomplete extends FoormAction
 
         $searchFields = Arr::get($this->fieldConfig,'search_fields');
         $resultFields = Arr::get($this->fieldConfig,'result_fields');
-
+        $appends = Arr::get($this->fieldConfig,'appends_fields',[]);
 
         $builder = $this->getAutocompleteBuilder();
 
         $modelMethodName = 'autocomplete' . Str::studly(Arr::get($this->fieldConfig,'autocomplete_type'));
 
-        $autocompleteResult = ($this->modelToAutocomplete)::$modelMethodName($this->value,$searchFields,$resultFields,$nItems,$builder);
+        $autocompleteResult = ($this->modelToAutocomplete)::$modelMethodName($this->value,$searchFields,$resultFields,$nItems,$builder,$appends);
 
         return $this->finalizeData($autocompleteResult);
 
