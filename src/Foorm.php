@@ -555,7 +555,8 @@ abstract class Foorm
             return $options;
         }
 
-        $optionType = current(explode(':', $options));
+        $optionTypeArray = explode(':', $options);
+        $optionType = $optionTypeArray[0];
 
 
         switch ($optionType) {
@@ -580,14 +581,18 @@ abstract class Foorm
 
             case 'method':
 
-                $fieldSanitized = str_replace('|', '_', $fieldKey);
-                $methodName = 'createOptions' . Str::studly($fieldSanitized);
+                if (isset($optionTypeArray[1])) {
+                    $methodName = $optionTypeArray[1];
+                } else {
+                    $fieldSanitized = str_replace('|', '_', $fieldKey);
+                    $methodName = 'createOptions' . Str::studly($fieldSanitized);
+                }
                 return $this->$methodName($fieldValue, $defaultOptionsValues, $relationName, $relationMetadata);
             case 'relation':
             case 'relation_as_options':
 
 
-                Log::info(print_r($this->getModelName(), true));
+//                Log::info(print_r($this->getModelName(), true));
 
                 $optionsRelationValue = explode(':', $options);
                 $optionsRelationName = $optionsRelationValue[1];
