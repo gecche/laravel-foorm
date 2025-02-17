@@ -5,6 +5,7 @@ namespace Gecche\Foorm\Actions;
 
 use Gecche\Foorm\FoormAction;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -19,12 +20,15 @@ class Autocomplete extends FoormAction
 
     protected $fieldConfig;
 
+    protected $params = [];
+
     protected function init()
     {
         parent::init();
 
         $this->fieldToAutocomplete = Arr::get($this->input, 'field');
         $this->value = Arr::get($this->input, 'value');
+        $this->params = Arr::get($this->input, 'params', []);
     }
 
     public function performAction()
@@ -57,17 +61,21 @@ class Autocomplete extends FoormAction
 
         $searchFields = Arr::get($this->fieldConfig,'search_fields');
         $resultFields = Arr::get($this->fieldConfig,'result_fields');
+        $appends = Arr::get($this->fieldConfig,'appends_fields',[]);
 
-
+        $builder = $this->getAutocompleteBuilder();
 
         $modelMethodName = 'autocomplete' . Str::studly(Arr::get($this->fieldConfig,'autocomplete_type'));
 
-        $autocompleteResult = ($this->modelToAutocomplete)::$modelMethodName($this->value,$searchFields,$resultFields,$nItems,null);
+        $autocompleteResult = ($this->modelToAutocomplete)::$modelMethodName($this->value,$searchFields,$resultFields,$nItems,$builder,$appends);
 
         return $this->finalizeData($autocompleteResult);
 
     }
 
+    protected function getAutocompleteBuilder() {
+        return null;
+    }
 
     public function validateAction()
     {

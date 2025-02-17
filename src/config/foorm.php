@@ -50,6 +50,8 @@
 
 return [
 
+    'submit_protocol' => 'form', //json|form
+
     'models_namespace' => "App\\Models\\",
     'foorms_namespace' => "App\\Foorm\\",
     'foorms_defaults_namespace' => "Gecche\\Foorm\\",

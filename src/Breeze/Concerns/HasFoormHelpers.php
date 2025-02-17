@@ -181,7 +181,7 @@ trait HasFoormHelpers
     }
 
 
-    public static function autoComplete($value, $fields = null, $labelColumns = null, $n_items = null, $builder = null)
+    public static function autoComplete($value, $fields = null, $labelColumns = null, $n_items = null, $builder = null, $appends = [])
     {
         $model = new static();
 
@@ -233,7 +233,7 @@ trait HasFoormHelpers
             $exactCompletionResult = $modelBuilder->limit($n_items)->get();
 
             list($exactCompletionItems, $n_items_matched, $ids_matched) =
-                $model->setCompletionItem($exactCompletionResult,$labelColumns);
+                $model->setCompletionItem($exactCompletionResult,$labelColumns,$appends);
 
             $idsToExclude = $ids_matched;
             $idsToExclude[] = -1;
@@ -255,7 +255,7 @@ trait HasFoormHelpers
                 $startCompletionResult = $modelBuilder->limit($n_items)->get();
 
                 list($startCompletionItems, $n_items_matched, $ids_matched) =
-                    $model->setCompletionItem($startCompletionResult,$labelColumns);
+                    $model->setCompletionItem($startCompletionResult,$labelColumns,$appends);
 
                 $idsToExclude = array_merge($idsToExclude, $ids_matched);
                 $n_items = $n_items - $n_items_matched;
@@ -276,7 +276,7 @@ trait HasFoormHelpers
                     $standardCompletionResult = $modelBuilder->limit($n_items)->get();
 
                     list($standardCompletionItems, $n_items_matched, $ids_matched) =
-                        $model->setCompletionItem($standardCompletionResult,$labelColumns);
+                        $model->setCompletionItem($standardCompletionResult,$labelColumns,$appends);
 
                     $idsToExclude = $ids_matched;
                     $n_items = $n_items - $n_items_matched;
@@ -317,7 +317,7 @@ trait HasFoormHelpers
         $this->completionItemFunction = $function;
     }
 
-    public function setCompletionItem($result, $labelColumns)
+    public function setCompletionItem($result, $labelColumns, $appends = [])
     {
 
         $ids = $result->pluck($this->getKeyName())->all();
@@ -326,21 +326,26 @@ trait HasFoormHelpers
 
         $n_items = count($items);
 
-        $function = $this->completionItemFunction ?: function ($item) use ($labelColumns) {
+        $labelColumns = array_unique(array_merge($labelColumns,$appends));
+        $function = $this->completionItemFunction ?: function ($item) use ($labelColumns,$appends) {
             $filteredItem = [];
 
-            $item = $item->toArray();
-            $itemDotted = Arr::dot($item);
+            $labelColumns = array_unique(array_merge($labelColumns,$appends));
             foreach ($labelColumns as $column) {
 
                 $chunks = explode('|', $column);
-                if (count($chunks) > 1) {
-                    $relationField = implode('.',$chunks);
-                    $columnValue = Arr::get($itemDotted,$relationField);
-                } else {
-                    $columnValue = Arr::get($item,$column);
+                $nChunks = count($chunks);
+                $i = 0;
+                $objectToAppend = $item;
+                $nChunksRimaste = $nChunks;
+                while ($nChunksRimaste > 1) {
+                    $relation = $chunks[$i];
+                    $objectToAppend = $objectToAppend->$relation;
+                    $i++;
+                    $nChunksRimaste--;
                 }
-                $filteredItem[$column] = $columnValue;
+                $field = $chunks[$i];
+                $filteredItem[$column] = $objectToAppend->$field;
             }
 
             return $filteredItem;

@@ -67,6 +67,8 @@ abstract class Foorm
 
     protected $dependentForms = null;
 
+    protected $submitProtocol = null;
+
     /**
      * FormList constructor.
      * @param array $input
@@ -82,6 +84,8 @@ abstract class Foorm
         $this->config = $config;
 
         $this->input = $this->filterPredefinedValuesFromInput($this->input);
+
+        $this->submitProtocol = Arr::get($this->config,'submit_protocol','form');
 
         $this->beforeDataPreparation();
 
@@ -551,7 +555,8 @@ abstract class Foorm
             return $options;
         }
 
-        $optionType = current(explode(':', $options));
+        $optionTypeArray = explode(':', $options);
+        $optionType = $optionTypeArray[0];
 
 
         switch ($optionType) {
@@ -576,14 +581,18 @@ abstract class Foorm
 
             case 'method':
 
-                $fieldSanitized = str_replace('|', '_', $fieldKey);
-                $methodName = 'createOptions' . Str::studly($fieldSanitized);
+                if (isset($optionTypeArray[1])) {
+                    $methodName = $optionTypeArray[1];
+                } else {
+                    $fieldSanitized = str_replace('|', '_', $fieldKey);
+                    $methodName = 'createOptions' . Str::studly($fieldSanitized);
+                }
                 return $this->$methodName($fieldValue, $defaultOptionsValues, $relationName, $relationMetadata);
             case 'relation':
             case 'relation_as_options':
 
 
-                Log::info(print_r($this->getModelName(), true));
+//                Log::info(print_r($this->getModelName(), true));
 
                 $optionsRelationValue = explode(':', $options);
                 $optionsRelationName = $optionsRelationValue[1];
@@ -627,10 +636,23 @@ abstract class Foorm
                 $optionsModelValue = explode(':', $options);
                 $optionsModelName = $optionsModelValue[1];
 
-                $modelsNamespace = Arr::get($this->config,'models_namespace');
-                $optionsModelName = $modelsNamespace . $optionsModelName;
+                if (!Str::contains($optionsModelName,["\\"])) {
+                    $modelsNamespace = Arr::get($this->config, 'models_namespace');
+                    $optionsModelName = $modelsNamespace . $optionsModelName;
+                }
                 $optionsModel = new $optionsModelName();
                 $options = $optionsModel->getForSelectList(null, null, [], null, null);
+
+                return $options;
+            case 'enum':
+
+                $optionsEnumValue = explode(':', $options);
+                $optionsEnumName = $optionsEnumValue[1];
+                if (!Str::contains($optionsEnumName,["\\"])) {
+                    $optionsEnumName =
+                        Arr::get($this->config,'enumss_namespace',"App\\Enums") . $optionsEnumName;
+                }
+                $options = $optionsEnumName::options();
 
                 return $options;
             default:
