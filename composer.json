@@ -16,8 +16,8 @@
         }
     ],
     "require": {
-        "laravel/framework": "^11.0",
-        "gecche/laravel-breeze": "^11.0"
+        "laravel/framework": "^12.0",
+        "gecche/laravel-breeze": "^12.0"
     },
     "autoload": {
         "psr-4": {
