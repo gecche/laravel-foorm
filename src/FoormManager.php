@@ -390,7 +390,8 @@ class FoormManager
         $totalRequestInput = $this->request->input() + $this->request->allFiles();
 
 
-        Log::info(print_r($totalRequestInput,true));
+	//Log::info("Request action input:");
+        //Log::info(print_r($totalRequestInput,true));
         return new $fullFormActionName($this->actionConfig, $foorm, $this->model,
             $totalRequestInput, $this->params);
 
