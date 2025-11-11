@@ -201,6 +201,8 @@ class FoormManager
             $finalConfig['dependencies'][$dependencyKey] = $dependencyConfig;
         }
 
+        $finalConfig['original_form_type'] = $this->foormType;
+
         $this->config = $finalConfig;
 
         return $finalConfig;
