@@ -112,11 +112,13 @@ class FoormManager
         return $this->foormName;
     }
 
-    public function getNormalizedFoormType() {
+    public function getNormalizedFoormType()
+    {
         return $this->normalizedFoormType;
     }
 
-    public function getFoormType() {
+    public function getFoormType()
+    {
         return $this->foormType;
     }
 
@@ -124,7 +126,23 @@ class FoormManager
     public function buildParams($params)
     {
 //        $this->setFixedConstraintsToParams($params);
+        if (!array_key_exists('is_api', $params)) {
+            $params['is_api'] = $this->checkIfIsApi();
+        }
         $this->params = $params;
+    }
+
+    public function checkIfIsApi()
+    {
+
+        if ($this->request->wantsJson()
+            || $this->request->is('*api/*')
+            || $this->request->routeIs('api.*')
+        ) {
+            return true;
+        }
+
+        return false;
     }
 
     protected function setFixedConstraintsToParams($params)
@@ -209,12 +227,14 @@ class FoormManager
 
     }
 
-    public function getRelativeModelName() {
-        return Arr::get($this->config,'relative_model_name');
+    public function getRelativeModelName()
+    {
+        return Arr::get($this->config, 'relative_model_name');
     }
 
-    public function getFullModelName() {
-        return Arr::get($this->config,'full_model_name');
+    public function getFullModelName()
+    {
+        return Arr::get($this->config, 'full_model_name');
     }
 
     protected function getFormTypeConfig($formName)
@@ -379,7 +399,7 @@ class FoormManager
     }
 
 
-    protected function setFoormAction($action,$foorm)
+    protected function setFoormAction($action, $foorm)
     {
 
         $this->checkActionAllowed($action);
@@ -392,7 +412,7 @@ class FoormManager
         $totalRequestInput = $this->request->input() + $this->request->allFiles();
 
 
-	//Log::info("Request action input:");
+        //Log::info("Request action input:");
         //Log::info(print_r($totalRequestInput,true));
         return new $fullFormActionName($this->actionConfig, $foorm, $this->model,
             $totalRequestInput, $this->params);
@@ -446,7 +466,7 @@ class FoormManager
     public function getFoormAction($action, $formName, Request $request, $params = [])
     {
         $foorm = $this->getFoorm($formName, $request, $params);
-        return $this->setFoormAction($action,$foorm);
+        return $this->setFoormAction($action, $foorm);
     }
 
 
