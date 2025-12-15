@@ -39,6 +39,8 @@ abstract class FoormAction
 
     protected $actionResult;
 
+    protected $isApi;
+
     /**
      * FormList constructor.
      * @param array $input
@@ -50,6 +52,7 @@ abstract class FoormAction
 
         $this->input = $input;
         $this->model = $model;
+        $this->isApi = Arr::pull($params,'is_api',true);
         $this->params = $params;
         $this->config = $config;
         $this->foorm = $foorm;
