@@ -85,7 +85,7 @@ abstract class Foorm
 
         $this->input = $this->filterPredefinedValuesFromInput($this->input);
 
-        $this->submitProtocol = Arr::get($this->config,'submit_protocol','form');
+        $this->submitProtocol = Arr::get($this->config, 'submit_protocol', 'form');
 
         $this->beforeDataPreparation();
 
@@ -97,7 +97,8 @@ abstract class Foorm
 
     }
 
-    protected function beforeDataPreparation() {
+    protected function beforeDataPreparation()
+    {
         return;
     }
 
@@ -129,7 +130,6 @@ abstract class Foorm
 
 
         foreach (array_keys($relations) as $relation) {
-
 
 
             $relationFields = array_key_append(Arr::get($configRelations[$relation], 'fields', []), $relation . '|', false);
@@ -445,7 +445,7 @@ abstract class Foorm
 
             $relationConfig = [];
 
-            $related = Arr::get($relationFromModel,'related');
+            $related = Arr::get($relationFromModel, 'related');
             switch ($relationFromModel[0]) {
                 case Breeze::BELONGS_TO:
                 case Breeze::BELONGS_TO_THROUGH:
@@ -604,19 +604,20 @@ abstract class Foorm
                     if (!$relationModelName) {
                         throw new \Exception("Relation " . $relationName . " not found in compiling options.");
                     }
+                    $optionsRelationModelName = $relationModelName;
                 } else {
                     $relationModelName = $this->getModelName();
                     if ($optionsRelationName == 'self') {
                         $optionsRelationName = $relationName;
                     }
+                    $relations = $relationModelName::getRelationsData();
+
+                    $optionsRelationModelName = Arr::get(Arr::get($relations, $optionsRelationName, []), 'related');
+                    if (!$optionsRelationModelName) {
+                        throw new \Exception("Relation " . $optionsRelationName . " not found in compiling options.");
+                    }
                 }
 
-                $relations = $relationModelName::getRelationsData();
-
-                $optionsRelationModelName = Arr::get(Arr::get($relations, $optionsRelationName, []), 'related');
-                if (!$optionsRelationModelName) {
-                    throw new \Exception("Relation " . $optionsRelationName . " not found in compiling options.");
-                }
 
                 $optionsRelationModel = new $optionsRelationModelName;
                 $options = $this->getForSelectList($optionsRelationName, $optionsRelationModel);
@@ -636,7 +637,7 @@ abstract class Foorm
                 $optionsModelValue = explode(':', $options);
                 $optionsModelName = $optionsModelValue[1];
 
-                if (!Str::contains($optionsModelName,["\\"])) {
+                if (!Str::contains($optionsModelName, ["\\"])) {
                     $modelsNamespace = Arr::get($this->config, 'models_namespace');
                     $optionsModelName = $modelsNamespace . $optionsModelName;
                 }
@@ -648,9 +649,9 @@ abstract class Foorm
 
                 $optionsEnumValue = explode(':', $options);
                 $optionsEnumName = $optionsEnumValue[1];
-                if (!Str::contains($optionsEnumName,["\\"])) {
+                if (!Str::contains($optionsEnumName, ["\\"])) {
                     $optionsEnumName =
-                        Arr::get($this->config,'enumss_namespace',"App\\Enums") . $optionsEnumName;
+                        Arr::get($this->config, 'enumss_namespace', "App\\Enums") . $optionsEnumName;
                 }
                 $options = $optionsEnumName::options();
 
@@ -670,7 +671,7 @@ abstract class Foorm
 
     protected function getForSelectListAsOptions($relationName, $relationModel, $fieldKey)
     {
-        $options = collect($relationModel->getForSelectList(null, [$fieldKey], [], null, null))->pluck($fieldKey,$fieldKey)->all();
+        $options = collect($relationModel->getForSelectList(null, [$fieldKey], [], null, null))->pluck($fieldKey, $fieldKey)->all();
 
         return $options;
     }
