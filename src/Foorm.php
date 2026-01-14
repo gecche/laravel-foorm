@@ -146,16 +146,17 @@ abstract class Foorm
     {
 
         $flatFields = $this->flatFields;
+
         switch ($what) {
-            case 'fields':
-                $flatFields = array_filter($flatFields, function ($value, $key) use ($what) {
-                    return in_array($value,['field','relationfield']);
-                }, ARRAY_FILTER_USE_BOTH);
+            case 'full':
                 break;
-            case 'relations':
+            case 'field':
+            case 'relation':
+            case 'relationfield':
                 $flatFields = array_filter($flatFields, function ($value, $key) use ($what) {
-                    return in_array($value,['relation','relationfield']);
+                    return $value == $what;
                 }, ARRAY_FILTER_USE_BOTH);
+
                 break;
             default:
                 if (Str::startsWith($what, 'fields:')) {
