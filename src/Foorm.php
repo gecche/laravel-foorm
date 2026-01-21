@@ -652,13 +652,14 @@ abstract class Foorm
                 return $options;
             case 'enum':
 
-                $optionsEnumValue = explode(':', $options);
-                $optionsEnumName = $optionsEnumValue[1];
+                $optionsEnumValue = explode(',', Arr::get($optionTypeArray,1,""));
+                $optionsEnumName = $optionsEnumValue[0];
                 if (!Str::contains($optionsEnumName, ["\\"])) {
                     $optionsEnumName =
-                        Arr::get($this->config, 'enumss_namespace', "App\\Enums") . $optionsEnumName;
+                        Arr::get($this->config, 'enums_namespace', "App\\Enums") . $optionsEnumName;
                 }
-                $options = $optionsEnumName::options();
+                $enumMethod = Arr::get($optionsEnumValue,1,'options');
+                $options = $optionsEnumName::$enumMethod();
 
                 return $options;
             default:
