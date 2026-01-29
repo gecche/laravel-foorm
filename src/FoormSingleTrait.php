@@ -3,6 +3,7 @@
 namespace Gecche\Foorm;
 
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
@@ -44,12 +45,13 @@ trait FoormSingleTrait
     }
 
 
-    public function setModelRelationsData() {
+    public function setModelRelationsData()
+    {
         $relationsKeys = array_keys($this->getRelations());
         foreach ($relationsKeys as $relationKey) {
 
-            $method = 'setModelRelationData'.Str::studly($relationKey);
-            if (method_exists($this,$method)) {
+            $method = 'setModelRelationData' . Str::studly($relationKey);
+            if (method_exists($this, $method)) {
                 $this->$method($relationKey);
             } else {
                 $this->setModelRelationData($relationKey);
@@ -59,7 +61,8 @@ trait FoormSingleTrait
 
     }
 
-    public function setModelRelationData($relationKey) {
+    public function setModelRelationData($relationKey)
+    {
         $this->model->load($relationKey);
     }
 
@@ -78,7 +81,7 @@ trait FoormSingleTrait
         $modelData = $this->model->toArray();
 
 
-        $this->formData = $this->removeAndSetDefaultFromConfig($modelData, $configData, 1, Arr::get($this->config,'relations',[]));
+        $this->formData = $this->removeAndSetDefaultFromConfig($modelData, $configData, 1, Arr::get($this->config, 'relations', []));
     }
 
     protected function removeAndSetDefaultFromConfig($modelData, $configData, $level = 1, $configRelations = [])
@@ -122,7 +125,7 @@ trait FoormSingleTrait
                 if (array_key_exists('as_options', $configRelation)) {
 
                     $fieldOptions = Arr::get($configRelation['as_options'], 'field', 'id');
-                    $modelData[$configKey] = collect($modelData[$configKey])->pluck($fieldOptions,$fieldOptions)->all();
+                    $modelData[$configKey] = collect($modelData[$configKey])->pluck($fieldOptions, $fieldOptions)->all();
 
 
                 } else {
@@ -219,20 +222,12 @@ trait FoormSingleTrait
     }
 
     //SOLO AL LIVELLO DEL MODELLO PRINCIPALE
-    protected function setFixedConstraints($data)
+    protected function setFixedConstraintsToData($data)
     {
-        $fixedConstraints = Arr::get($this->params, 'fixed_constraints', []);
 
-        foreach ($fixedConstraints as $fixedConstraint) {
+        foreach ($this->fixedConstraints as $fixedConstraintKey => $fixedCostraintValue) {
 
-
-            $field = Arr::get($fixedConstraint, 'field', null);
-
-            if (!$field || !is_string($field) || !array_key_exists('value', $fixedConstraint)) {
-                continue;
-            };
-
-            $data[$field] = $fixedConstraint['value'];
+            $data[$fixedConstraintKey] = $fixedCostraintValue;
         }
 
         return $data;
@@ -251,7 +246,7 @@ trait FoormSingleTrait
 
         $this->setModelData();
 
-        $this->formData = $this->setFixedConstraints($this->formData);
+        $this->formData = $this->setFixedConstraintsToData($this->formData);
 
         $this->finalizeData();
 
@@ -287,7 +282,7 @@ trait FoormSingleTrait
         foreach ($fields as $fieldKey => $fieldValue) {
 
             if (Arr::get($fieldValue, 'referred_data')) {
-                $referredData = $this->createReferredData($fieldKey, $fieldValue);
+                $referredData = $this->createReferredData($fieldKey, $fieldValue, $relationName);
 
 
                 $fieldValue['referred_data'] = $referredData;
@@ -302,7 +297,7 @@ trait FoormSingleTrait
 
     }
 
-    protected function createReferredData($fieldKey, $fieldValue)
+    protected function createReferredData($fieldKey, $fieldValue, $relationName = null)
     {
 
         $referredData = $fieldValue['referred_data'];
@@ -335,30 +330,83 @@ trait FoormSingleTrait
                  * Prendo tutte le relazioni del modello anche quelle non in configurazione
                  */
                 $relations = ($this->getModelName())::getRelationsData();
-                $relationName = Arr::get($referredDataArray, 0);
+                $referredRelationName = Arr::get($referredDataArray, 0);
+                if (is_null($relationName)) {
 
-                if (!array_key_exists($relationName, $relations)) {
-                    throw new \Exception("Relation " . $relationName . " not found.");
-                }
 
-                $relationResult = $this->model->$relationName;
+                    if (!array_key_exists($referredRelationName, $relations)) {
+                        throw new \Exception("Relation " . $referredRelationName . " not found.");
+                    }
 
-                if (is_null($relationResult)) {
-                    return [];
-                }
-                if (is_array($relationResult)) {
-                    throw new \Exception("Referred data only for belongsto macrotypes");
-                }
+                    $relationResult = $this->model->$referredRelationName;
 
-                if (!array_key_exists(1, $referredDataArray)) {
-                    $fieldsToFilter = $relationResult->getColumnsForSelectList();
+                    if (is_null($relationResult)) {
+                        return [];
+                    }
+                    if (is_array($relationResult)) {
+                        throw new \Exception("Referred data only for belongsto macrotypes");
+                    }
+
+                    if (!array_key_exists(1, $referredDataArray)) {
+                        $fieldsToFilter = $relationResult->getColumnsForSelectList();
+                    } else {
+                        $fieldsToFilter = explode('|', Arr::get($referredDataArray, 1));
+                    }
+
+                    $relationResult = $relationResult->toArray();
+                    $fieldsToFilter = array_combine($fieldsToFilter, $fieldsToFilter);
+                    return array_intersect_key($relationResult, $fieldsToFilter);
                 } else {
-                    $fieldsToFilter = explode('|', Arr::get($referredDataArray, 1));
-                }
+                    if (!array_key_exists($relationName, $relations)) {
+                        throw new \Exception("Relation " . $relationName . " not found.");
+                    }
 
-                $relationResult = $relationResult->toArray();
-                $fieldsToFilter = array_combine($fieldsToFilter, $fieldsToFilter);
-                return array_intersect_key($relationResult, $fieldsToFilter);
+                    $relatedData = $relations[$relationName];
+                    $relatedModel = Arr::get($relatedData,'related');
+                    $nestedRelationsData = $relatedModel::getRelationsData();
+
+                    if (!array_key_exists($referredRelationName, $nestedRelationsData)) {
+                        throw new \Exception("Nested relation " . $relationName.'.'.$referredRelationName . " not found.");
+                    }
+
+                    $relationResult = $this->model->$relationName;
+                    if (is_null($relationResult)) {
+                        return [];
+                    }
+
+
+                    if (is_object($relationResult) && is_a($relationResult,Model::class)) {
+
+
+                        $nestedRelationResult = $relationResult->$referredRelationName;
+                        if (!array_key_exists(1, $referredDataArray)) {
+                            $fieldsToFilter = $nestedRelationResult->getColumnsForSelectList();
+                        } else {
+                            $fieldsToFilter = explode('|', Arr::get($referredDataArray, 1));
+                        }
+
+                        $nestedRelationResult = $nestedRelationResult->toArray();
+                        $fieldsToFilter = array_combine($fieldsToFilter, $fieldsToFilter);
+                        return array_intersect_key($nestedRelationResult, $fieldsToFilter);
+
+                    } else {
+                        $referredDataResult = [];
+                        foreach ($relationResult as $relationResultElement) {
+                            $nestedRelationResult = $relationResultElement->$referredRelationName;
+
+                            if (!array_key_exists(1, $referredDataArray)) {
+                                $fieldsToFilter = $nestedRelationResult->getColumnsForSelectList();
+                            } else {
+                                $fieldsToFilter = explode('|', Arr::get($referredDataArray, 1));
+                            }
+
+                            $nestedRelationResult = $nestedRelationResult->toArray();
+                            $fieldsToFilter = array_combine($fieldsToFilter, $fieldsToFilter);
+                            $referredDataResult[] = array_intersect_key($nestedRelationResult, $fieldsToFilter);
+                        }
+                        return $referredDataResult;
+                    }
+                }
 
             default:
                 return [];

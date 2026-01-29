@@ -69,6 +69,8 @@ abstract class Foorm
 
     protected $submitProtocol = null;
 
+    protected $fixedConstraints = [];
+
     /**
      * FormList constructor.
      * @param array $input
@@ -92,6 +94,8 @@ abstract class Foorm
         $this->prepareRelationsData();
 
         $this->prepareFoormInternalData();
+
+        $this->setFixedConstraints();
 
         $this->init();
 
@@ -173,6 +177,23 @@ abstract class Foorm
         }
         return $flatFields;
 
+    }
+
+    protected function setFixedConstraints()
+    {
+        $fixedConstraints = Arr::get($this->params, 'fixed_constraints', []);
+
+        foreach ($fixedConstraints as $fixedConstraint) {
+
+
+            $field = Arr::get($fixedConstraint, 'field', null);
+
+            if (!$field || !is_string($field) || !array_key_exists('value', $fixedConstraint)) {
+                continue;
+            };
+
+            $this->fixedConstraints[$field] = $fixedConstraint['value'];
+        }
     }
 
     public function hasFlatField($field, $type = null)
