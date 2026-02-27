@@ -610,7 +610,11 @@ abstract class Foorm
                 if (isset($optionTypeArray[1])) {
                     $methodName = $optionTypeArray[1];
                 } else {
-                    $fieldSanitized = str_replace('|', '_', $fieldKey);
+                    if ($relationName) {
+                        $fieldSanitized = str_replace('|', '_', $relationName.'_'.$fieldKey);
+                    } else {
+                        $fieldSanitized = str_replace('|', '_', $fieldKey);
+                    }
                     $methodName = 'createOptions' . Str::studly($fieldSanitized);
                 }
                 return $this->$methodName($fieldValue, $defaultOptionsValues, $relationName, $relationMetadata);
