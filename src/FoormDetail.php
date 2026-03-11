@@ -219,12 +219,12 @@ class FoormDetail extends Foorm
         if (Arr::get($this->params, 'id')) {
             unset($input[$this->primary_key_field]);
         }
-        foreach (array_keys($configFields) as $fieldName) {
+        foreach ($configFields as $fieldName => $fieldValue) {
             /*
              * Filtro i campi in base alla configurazione.
              * Se nell'input non sono presenti alcuni campi non imposto niente
              */
-            if (!array_key_exists($fieldName, $input)) {
+            if (!array_key_exists($fieldName, $input) || !Arr::get($fieldValue, 'save', true)) {
                 continue;
             }
             $model->$fieldName = Arr::get($input, $fieldName);
