@@ -683,7 +683,7 @@ abstract class Foorm
                 if (!$optionsEnumName) {
                     throw new \Exception("Enum name not found in $fieldKey options config");
                 }
-                $enumMethod = Arr::get($optionTypeArray,2,'getForSelectList');
+                $enumMethod = Arr::get($optionTypeArray,2,'options');
                 if (!Str::contains($optionsEnumName, ["\\"])) {
                     $optionsEnumName =
                         Arr::get($this->config, 'enums_namespace', "App\\Enums") . $optionsEnumName;
