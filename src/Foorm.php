@@ -69,6 +69,8 @@ abstract class Foorm
 
     protected $submitProtocol = null;
 
+    protected $fixedConstraints = [];
+
     /**
      * FormList constructor.
      * @param array $input
@@ -92,6 +94,8 @@ abstract class Foorm
         $this->prepareRelationsData();
 
         $this->prepareFoormInternalData();
+
+        $this->setFixedConstraints();
 
         $this->init();
 
@@ -146,12 +150,17 @@ abstract class Foorm
     {
 
         $flatFields = $this->flatFields;
+
         switch ($what) {
-            case 'fields':
-            case 'relations':
+            case 'full':
+                break;
+            case 'field':
+            case 'relation':
+            case 'relationfield':
                 $flatFields = array_filter($flatFields, function ($value, $key) use ($what) {
                     return $value == $what;
                 }, ARRAY_FILTER_USE_BOTH);
+
                 break;
             default:
                 if (Str::startsWith($what, 'fields:')) {
@@ -168,6 +177,23 @@ abstract class Foorm
         }
         return $flatFields;
 
+    }
+
+    protected function setFixedConstraints()
+    {
+        $fixedConstraints = Arr::get($this->params, 'fixed_constraints', []);
+
+        foreach ($fixedConstraints as $fixedConstraint) {
+
+
+            $field = Arr::get($fixedConstraint, 'field', null);
+
+            if (!$field || !is_string($field) || !array_key_exists('value', $fixedConstraint)) {
+                continue;
+            };
+
+            $this->fixedConstraints[$field] = $fixedConstraint['value'];
+        }
     }
 
     public function hasFlatField($field, $type = null)
@@ -581,10 +607,11 @@ abstract class Foorm
 
             case 'method':
 
-                if (isset($optionTypeArray[1])) {
-                    $methodName = $optionTypeArray[1];
-                } else {
-                    $fieldSanitized = str_replace('|', '_', $fieldKey);
+                $methodName = Arr::get($optionTypeArray,1);
+                if (!$methodName) {
+                    $fieldSanitized = $relationName
+                        ? str_replace('|', '_', $relationName.'_'.$fieldKey)
+                        : str_replace('|', '_', $fieldKey);
                     $methodName = 'createOptions' . Str::studly($fieldSanitized);
                 }
                 return $this->$methodName($fieldValue, $defaultOptionsValues, $relationName, $relationMetadata);
@@ -592,10 +619,11 @@ abstract class Foorm
             case 'relation_as_options':
 
 
-//                Log::info(print_r($this->getModelName(), true));
-
-                $optionsRelationValue = explode(':', $options);
-                $optionsRelationName = $optionsRelationValue[1];
+                $optionsRelationName = Arr::get($optionTypeArray,1);
+                if (!$optionsRelationName) {
+                    throw new \Exception("Relation name not found in $fieldKey options config");
+                }
+                $methodSelectListName = Arr::get($optionTypeArray,2,'getForSelectList');
                 /*
                  * Prendo tutte le relazioni del modello anche quelle non in configurazione
                  */
@@ -620,7 +648,7 @@ abstract class Foorm
 
 
                 $optionsRelationModel = new $optionsRelationModelName;
-                $options = $this->getForSelectList($optionsRelationName, $optionsRelationModel);
+                $options = $this->$methodSelectListName($optionsRelationName, $optionsRelationModel);
 //                if ($optionType == 'relation') {
 //                    $options = $this->getForSelectList($optionsRelationName, $optionsRelationModel);
 //                } else {
@@ -629,31 +657,38 @@ abstract class Foorm
 
                 return $options;
             case 'self':
+                $methodSelectListName = Arr::get($optionTypeArray,1,'getForSelectList');
 
-                return $this->getForSelectList($this->getModelName(), $this->getModel());
+                return $this->$methodSelectListName($this->getModelName(), $this->getModel());
 
             case 'model':
 
-                $optionsModelValue = explode(':', $options);
-                $optionsModelName = $optionsModelValue[1];
+                $optionsModelName = Arr::get($optionTypeArray,1);
+                if (!$optionsModelName) {
+                    throw new \Exception("Model name not found in $fieldKey options config");
+                }
+                $methodSelectListName = Arr::get($optionTypeArray,2,'getForSelectList');
 
                 if (!Str::contains($optionsModelName, ["\\"])) {
                     $modelsNamespace = Arr::get($this->config, 'models_namespace');
                     $optionsModelName = $modelsNamespace . $optionsModelName;
                 }
                 $optionsModel = new $optionsModelName();
-                $options = $optionsModel->getForSelectList(null, null, [], null, null);
+                $options = $optionsModel->$methodSelectListName(null, null, [], null, null);
 
                 return $options;
             case 'enum':
 
-                $optionsEnumValue = explode(':', $options);
-                $optionsEnumName = $optionsEnumValue[1];
+                $optionsEnumName = Arr::get($optionTypeArray,1);
+                if (!$optionsEnumName) {
+                    throw new \Exception("Enum name not found in $fieldKey options config");
+                }
+                $enumMethod = Arr::get($optionTypeArray,2,'options');
                 if (!Str::contains($optionsEnumName, ["\\"])) {
                     $optionsEnumName =
-                        Arr::get($this->config, 'enumss_namespace', "App\\Enums") . $optionsEnumName;
+                        Arr::get($this->config, 'enums_namespace', "App\\Enums") . $optionsEnumName;
                 }
-                $options = $optionsEnumName::options();
+                $options = $optionsEnumName::$enumMethod();
 
                 return $options;
             default:
