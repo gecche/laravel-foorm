@@ -27,6 +27,10 @@ class FoormServiceProvider extends ServiceProvider
         {
             return new FoormManager($app['config']->get('foorm'));
         });
+        $this->app->bind('foorm-queue', function($app)
+        {
+            return new FoormQueueManager($app['config']->get('foorm'));
+        });
     }
 
     /**

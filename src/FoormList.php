@@ -112,7 +112,7 @@ class FoormList extends Foorm
             $perPage = Arr::get($this->config, 'no_paginate_value', 1000000);
         }
 
-//        Log::info("QUERYLIST::: ".$this->formBuilder->toSql());
+//        Log::info("QUERYLIST::: ".$this->formBuilder->toRawSql());
 
         $this->formBuilder = $this->formBuilder->paginate($perPage, $paginateSelect, 'page', $page);
 

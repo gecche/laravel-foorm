@@ -30,7 +30,8 @@
                 "Gecche\\Foorm\\FoormServiceProvider"
             ],
             "aliases": {
-                "Foorm": "Gecche\\Foorm\\Facades\\Foorm"
+                "Foorm": "Gecche\\Foorm\\Facades\\Foorm",
+                "FoormQueue": "Gecche\\Foorm\\Facades\\FoormQueue"
             }
         }
     }
