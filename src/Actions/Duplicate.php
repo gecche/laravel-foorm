@@ -4,6 +4,7 @@ namespace Gecche\Foorm\Actions;
 
 use Gecche\Foorm\FoormAction;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 class Duplicate extends FoormAction
 {
@@ -16,6 +17,8 @@ class Duplicate extends FoormAction
 
     protected $fieldsToExclude = [];
 
+    protected $fieldsToMakeUnique = [];
+
     protected function init()
     {
         if ($this->model->getKey()) {
@@ -26,6 +29,7 @@ class Duplicate extends FoormAction
 
         $this->relationsToDuplicate = Arr::get($this->config, 'relations_to_duplicate', []);
         $this->fieldsToExclude = Arr::get($this->config, 'fields_to_exclude', []);
+        $this->fieldsToMakeUnique = Arr::get($this->config, 'fields_to_make_unique', []);
     }
 
     public function performAction()
@@ -55,6 +59,17 @@ class Duplicate extends FoormAction
     protected function duplicateModel()
     {
         $this->duplicatedModel = $this->modelToDuplicate->replicate($this->fieldsToExclude);
+        foreach (Arr::except($this->input,['id']) as $field) {
+            $this->duplicatedModel->{$field} = $this->input[$field];
+        }
+        foreach ($this->fieldsToMakeUnique as $field) {
+            if (!array_key_exists($field, $this->input)) {
+                $newValue = $this->makeUnique($field);
+                $this->duplicatedModel->{$field} = $newValue;
+            }
+
+
+        }
         $this->duplicatedModel->save();
     }
 
@@ -87,6 +102,37 @@ class Duplicate extends FoormAction
                 }
             }
         }
+    }
+
+    protected function makeUnique($field)
+    {
+        $value = $this->duplicatedModel->{$field};
+
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        $value = (string) $value;
+        $baseValue = preg_replace('/\s\(\d+\)$/', '', $value) ?: $value;
+
+        if (!$this->fieldValueExists($field, $value)) {
+            return $value;
+        }
+
+        $suffix = 2;
+        do {
+            $candidate = $baseValue . ' (' . $suffix . ')';
+            $suffix++;
+        } while ($this->fieldValueExists($field, $candidate));
+
+        return $candidate;
+    }
+
+    protected function fieldValueExists($field, $value): bool
+    {
+        return $this->getModel()->newQuery()
+            ->where($field, $value)
+            ->exists();
     }
 
 }
