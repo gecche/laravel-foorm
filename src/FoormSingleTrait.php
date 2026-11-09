@@ -263,6 +263,8 @@ trait FoormSingleTrait
 
         $this->setFormMetadataRelations();
 
+        $this->formMetadata['pk'] = $this->model ? $this->model->getKey() : null;
+
     }
 
 
